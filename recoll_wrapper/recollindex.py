@@ -61,11 +61,6 @@ def run_cmd(*args: str, timeout: int | None = None) -> subprocess.CompletedProce
         )
 
 
-def docker_exec(*cmd: str) -> subprocess.CompletedProcess[str]:
-    """Shortcut for ``docker exec <CONTAINER> <cmd>``."""
-    return run_cmd("docker", "exec", CONTAINER, *cmd)
-
-
 def pretty_duration(seconds: float) -> str:
     """Format seconds as ``HHh MMm SSs``."""
     t = timedelta(seconds=int(seconds))
@@ -123,7 +118,8 @@ def container_diagnostics(label: str) -> None:
     c.print(f"Container image: [cyan]{result.stdout.strip()}[/]")
 
     # Recoll version
-    result = docker_exec("sh", "-c", "recollindex -h 2>&1 | head -3")
+    result = run_cmd("docker", "exec", CONTAINER,
+                     "sh", "-c", "recollindex -h 2>&1 | head -3")
     c.print("Recoll version:")
     for line in result.stdout.strip().splitlines():
         c.print(f"  {line}")
@@ -131,7 +127,8 @@ def container_diagnostics(label: str) -> None:
         c.print(f"  [dim]{result.stderr.strip()}[/]")
 
     # Index size
-    result = docker_exec("sh", "-c", f"du -sh {INDEX_PATH} 2>/dev/null")
+    result = run_cmd("docker", "exec", CONTAINER,
+                     "sh", "-c", f"du -sh {INDEX_PATH} 2>/dev/null")
     for line in result.stdout.strip().splitlines():
         c.print(f"Index size: [cyan]{line.strip()}[/]")
 
@@ -143,10 +140,10 @@ def container_diagnostics(label: str) -> None:
 
     # Recoll processes inside container
     c.print("Existing Recoll processes:")
-    result = docker_exec(
-        "sh",
-        "-c",
-        "ps -eo pid,comm,args | grep -E 'recoll(index)?|rcl' | grep -v grep",
+    result = run_cmd(
+        "docker", "exec", CONTAINER, "sh", "-c",
+        "ps -eo pid,comm,args | grep -E 'recoll(index)?|rcl' "
+        "| grep -v grep",
     )
     if result.stdout.strip():
         for line in result.stdout.strip().splitlines():
@@ -303,10 +300,9 @@ def check_existing_indexers() -> bool:
     Returns:
         True if an indexer is already running (i.e., we should abort).
     """
-    result = docker_exec(
-        "sh",
-        "-c",
-        "pgrep -x recollindex | wc -l",
+    result = run_cmd(
+        "docker", "exec", CONTAINER,
+        "sh", "-c", "pgrep -x recollindex | wc -l",
     )
     count_text = result.stdout.strip()
     count = int(count_text) if count_text.isdigit() else 0

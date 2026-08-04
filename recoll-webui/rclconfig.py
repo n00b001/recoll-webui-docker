@@ -173,9 +173,7 @@ class RclConfig:
     def setKeyDir(self, dir):
         self.keydir = dir
 
-    def getConfParam(self, nm):
-        return self.config.get(nm, self.keydir)
-        
+
 class RclExtraDbs:
     def __init__(self, config):
         self.config = config
