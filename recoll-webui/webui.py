@@ -117,8 +117,8 @@ def get_config():
     rclconf = rclconfig.RclConfig()
     config['confdir'] = rclconf.getConfDir()
     config['dirs'] = [os.path.expanduser(d) for d in
-                      shlex.split(rclconf.getConfParam('topdirs'))]
-    config['stemlang'] = rclconf.getConfParam('indexstemminglanguages')
+                      shlex.split(rclconf.config.get('topdirs', rclconf.keydir))]
+    config['stemlang'] = rclconf.config.get('indexstemminglanguages', rclconf.keydir)
     # get config from cookies or defaults
     for k, v in DEFAULTS.items():
         value = select([bottle.request.get_cookie(k), v])

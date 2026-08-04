@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix .'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ty-check
+        name: ty check
+        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src'
+        language: system
+        pass_filenames: false
+        always_run: true
