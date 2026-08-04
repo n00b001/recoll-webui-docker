@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix recollindex.py
+        language: system
+        pass_filenames: false
+      - id: ty-check
+        name: ty check
+        entry: uv run ty check recollindex.py
+        language: system
+        pass_filenames: false

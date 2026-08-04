@@ -1,0 +1,19 @@
+[project]
+name = "recoll-webui-docker"
+version = "0.1.0"
+description = "TrueNAS Recoll indexing wrapper with diagnostics and coloured logging"
+requires-python = ">=3.14"
+dependencies = [
+    "rich>=15.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.1",
+    "ty>=0.0.66",
+]
+
