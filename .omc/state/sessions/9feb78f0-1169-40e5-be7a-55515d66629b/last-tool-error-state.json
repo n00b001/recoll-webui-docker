@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /home/alex/pycharm-projects/recoll-webui-docker/recoll_wrapper && uv run ruff check recollindex.py tests/ --no-cache 2>&1\",\"description\":\"Run ruff lint after fixes\"}",
+  "error": "Exit code 1\nRUF100 [*] Unused `noqa` directive (unused: `F841`)\n   --> recollindex.py:675:28\n    |\n673 |     try:\n674 |         return main()\n675 |     except BaseException:  # noqa: F841  (catch SystemExit, KeyboardInterrupt too)\n    |                            ^^^^^^^^^^^^\n676 |         console().print(\"[bold red]Unhandled exception:[/]\")\n677 |         console().print_exception()\n    |\nhelp: Remove unused `noqa` directive\n    |\n674 |         return main()\n    -     except BaseException:  # no...",
+  "timestamp": "2026-08-04T16:55:56.273Z",
+  "retry_count": 3
+}

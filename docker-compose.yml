@@ -1,0 +1,34 @@
+services:
+  recoll-engine:
+    image: recoll-engine:latest
+    container_name: recoll-engine
+    restart: unless-stopped
+
+    volumes:
+      - recoll-data:/root/.recoll
+      - documents:/data
+
+    command:
+      - recollindex
+      - -w
+
+
+  recoll-webui:
+    image: recoll-webui:latest
+    container_name: recoll-webui
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - recoll-data:/root/.recoll
+      - documents:/data
+
+    depends_on:
+      - recoll-engine
+
+
+volumes:
+  recoll-data:
+  documents:
