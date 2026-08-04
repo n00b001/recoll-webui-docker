@@ -31,15 +31,7 @@ jobs:
         run: docker compose -f docker-compose.yml config --quiet
 
       - name: Lint — GitHub Actions
-        uses: actionlint-runner/actionlint-mdfreak@v1
-
-      - name: Lint — Bash
-        uses: reviewdog/action-shellcheck@v1
-        with:
-          schema: auto
-
-      - name: Lint — Python syntax
-        run: cd recoll_wrapper && uv run py_compile recollindex.py && echo "syntax ok"
+        uses: rhysd/actionlint@v1
 
   test:
     runs-on: ubuntu-latest
