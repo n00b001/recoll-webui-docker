@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Lint — ruff
+        run: cd recoll_wrapper && uv run ruff check .
+
+      - name: Type check — ty
+        run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
+
+      - name: Lint — Docker Compose
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Lint — GitHub Actions
+        uses: actionlint-runner/actionlint-mdfreak@v1
+
+      - name: Lint — Bash
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          schema: auto
+
+      - name: Lint — Python syntax
+        run: cd recoll_wrapper && uv run py_compile recollindex.py && echo "syntax ok"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Run tests
+        run: cd recoll_wrapper && uv run pytest tests/ -v

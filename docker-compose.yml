@@ -1,34 +1,29 @@
 services:
   recoll-engine:
-    image: recoll-engine:latest
     container_name: recoll-engine
+    image: ghcr.io/n00b001/recoll-engine:latest
     restart: unless-stopped
-
+    deploy:
+      resources:
+        limits:
+          cpus: '6'
+          memory: 8G
     volumes:
-      - recoll-data:/root/.recoll
-      - documents:/data
-
-    command:
-      - recollindex
-      - -w
-
+      - /mnt/shuttle/share/app-data/recoll:/root
+      - /mnt/shuttle/share/syncthing/alex-hades-home:/homes/alex/hades
+      - /mnt/shuttle/share/syncthing/alex-phone:/homes/alex/phone
+      - /mnt/shuttle/share/alex-home/google-drive:/homes/alex/gdrive
+      - /mnt/shuttle/share/syncthing/chloe-home:/homes/chloe/home
+      - /mnt/shuttle/share/syncthing/chloe-phone:/homes/chloe/phone
+      - /mnt/shuttle/share/chloe-home/google-drive:/homes/chloe/gdrive
 
   recoll-webui:
-    image: recoll-webui:latest
     container_name: recoll-webui
+    image: ghcr.io/n00b001/recoll-webui:latest
     restart: unless-stopped
-
     ports:
-      - "8080:8080"
-
-    volumes:
-      - recoll-data:/root/.recoll
-      - documents:/data
-
+      - '9080:8080'
     depends_on:
       - recoll-engine
-
-
-volumes:
-  recoll-data:
-  documents:
+    volumes:
+      - /mnt/shuttle/share/app-data/recoll:/root
