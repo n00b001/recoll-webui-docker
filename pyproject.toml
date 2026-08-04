@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "TrueNAS Recoll indexing wrapper with diagnostics and coloured logging"
 requires-python = ">=3.14"
 dependencies = [
+    "pre-commit>=4.6.1",
     "rich>=15.0.0",
 ]
 
@@ -13,7 +14,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.0",
     "ruff>=0.16.1",
     "ty>=0.0.66",
 ]
+
+[tool.ruff]
+exclude = ["recoll-webui/**", "src/**"]
 
