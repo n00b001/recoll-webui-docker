@@ -11,7 +11,6 @@ Usage:
 from __future__ import annotations
 
 import fcntl
-import logging
 import os
 import re
 import subprocess
@@ -37,28 +36,12 @@ LOCK_FILE = "/tmp/recollindex-wrapper.lock"
 DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 
 # ---------------------------------------------------------------------------
-# Console / logging
+# Console / logging — two lines: https://github.com/Textualize/rich/discussions/1309
 # ---------------------------------------------------------------------------
 
-console = Console()
-logger = logging.getLogger("recoll")
-
-
-def _setup_logging(log_path: Path) -> None:
-    """Initialise coloured console + file logging."""
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-
-    logger.handlers.clear()
-
-    rich_handler = RichHandler(console=console, rich_tracebacks=True)
-    rich_handler.setFormatter(logging.Formatter("%(message)s", datefmt="[%X]"))
-    logger.addHandler(rich_handler)
-
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    )
-    logger.addHandler(file_handler)
+Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+console = Console(file=open(LOG_FILE, "a", encoding="utf-8"))  # noqa: SIM115
+RichHandler(console=console)
 
 
 # ---------------------------------------------------------------------------
@@ -438,9 +421,6 @@ def run_indexing(mode: str, command: list[str]) -> int:
 def main() -> int:
     """Entry point."""
     rebuild = "--rebuild" in sys.argv[1:]
-
-    log_path = Path(LOG_FILE)
-    _setup_logging(log_path)
 
     start_wall = time.monotonic()
     my_pid = os.getpid()
