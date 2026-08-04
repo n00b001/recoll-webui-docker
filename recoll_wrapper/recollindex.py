@@ -39,9 +39,17 @@ DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 # Console / logging — two lines: https://github.com/Textualize/rich/discussions/1309
 # ---------------------------------------------------------------------------
 
-Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-console = Console(file=open(LOG_FILE, "a", encoding="utf-8"))  # noqa: SIM115
-RichHandler(console=console)
+def _get_console() -> Console:
+    """Return the global console, initialising lazily on first call."""
+    global console  # noqa: PLW0603
+    if console is None:
+        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+        console = Console(file=open(LOG_FILE, "a", encoding="utf-8"))  # noqa: SIM115
+        RichHandler(console=console)
+    return console
+
+
+console: Console | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -73,11 +81,11 @@ def pretty_duration(seconds: float) -> str:
 
 
 def _print_section(title: str) -> None:
-    console.print(Panel.fit(title, border_style="bold yellow", padding=(0, 1)))
+    _get_console().print(Panel.fit(title, border_style="bold yellow", padding=(0, 1)))
 
 
 def _print_subsection(title: str) -> None:
-    console.rule(f"[bold cyan]{title}[/]")
+    _get_console().rule(f"[bold cyan]{title}[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +102,7 @@ def container_diagnostics(label: str) -> None:
     _print_subsection(f"{label}: Container diagnostics")
 
     # Container status table
-    c = console
+    c = _get_console()
     c.print("Container status:")
     result = run_cmd(
         "docker",
@@ -162,7 +170,7 @@ def storage_diagnostics(label: str) -> None:
     """
     _print_subsection(f"{label}: Storage diagnostics")
 
-    c = console
+    c = _get_console()
     c.print(
         "[dim]NOTE: zpool/zfs diagnostics run on the TrueNAS host,[/]"
         " not inside the Recoll container."
@@ -267,7 +275,7 @@ def print_configuration() -> None:
     """Print relevant Recoll configuration values."""
     _print_subsection("Configuration")
 
-    c = console
+    c = _get_console()
     config_path = Path(CONFIG_FILE)
     if not config_path.exists():
         c.print(f"[red]Missing config file: {CONFIG_FILE}[/]")
@@ -307,7 +315,7 @@ def check_existing_indexers() -> bool:
     count_text = result.stdout.strip()
     count = int(count_text) if count_text.isdigit() else 0
 
-    c = console
+    c = _get_console()
     c.print("Checking existing Recoll indexers...")
     c.print(f"Existing recollindex processes: [bold]{count}[/]")
 
@@ -325,16 +333,17 @@ def check_existing_indexers() -> bool:
 
 def confirm_rebuild() -> bool:
     """Ask the user for y/N confirmation before a full rebuild."""
-    console.print(
+    c = _get_console()
+    c.print(
         "\n[bold red]WARNING:[/] This will completely rebuild the Recoll index."
     )
-    console.print("[yellow]This may take a long time.[/]\n")
+    c.print("[yellow]This may take a long time.[/]\n")
 
-    answer = console.input("Continue? [y/N] ").strip().lower()
+    answer = c.input("Continue? [y/N] ").strip().lower()
     if answer in ("y", "yes"):
-        console.print("[green]Starting full rebuild...\n[/]")
+        c.print("[green]Starting full rebuild...\n[/]")
         return True
-    console.print("[yellow]Cancelled.\n[/]")
+    c.print("[yellow]Cancelled.\n[/]")
     return False
 
 
@@ -345,9 +354,10 @@ def confirm_rebuild() -> bool:
 
 def run_indexing(mode: str, command: list[str]) -> int:
     """Run recollindex inside the container with a live progress spinner."""
+    c = _get_console()
     _print_subsection("Indexing")
-    console.print(f"Mode: [bold magenta]{mode}[/]")
-    console.print(f"Command: [cyan]{' '.join(command)}[/]\n")
+    c.print(f"Mode: [bold magenta]{mode}[/]")
+    c.print(f"Command: [cyan]{' '.join(command)}[/]\n")
 
     full_cmd = [
         "docker",
@@ -364,7 +374,7 @@ def run_indexing(mode: str, command: list[str]) -> int:
         SpinnerColumn(spinner_name="arrow"),
         TextColumn("[bold cyan]{task.description}[/]"),
         TimeElapsedColumn(),
-        console=console,
+        console=c,
     ) as progress:
         task = progress.add_task("Indexing in progress...", start=True)
 
@@ -392,19 +402,19 @@ def run_indexing(mode: str, command: list[str]) -> int:
         if not text:
             continue
         lines = text.splitlines()
-        console.print(f"\n[bold {style}]recollindex {label}:[/]")
+        c.print(f"\n[bold {style}]recollindex {label}:[/]")
         prefix = "[red]" if style == "red" else ""
         suffix = "[/]" if style == "red" else ""
         for line in lines[:50]:
-            console.print(f"  {prefix}{line}{suffix}")
+            c.print(f"  {prefix}{line}{suffix}")
         if len(lines) > 50:
-            console.print(f"  [dim]... ({len(lines)} lines total)[/]")
+            c.print(f"  [dim]... ({len(lines)} lines total)[/]")
 
     status = "SUCCESS" if exit_code == 0 else f"FAILED (exit {exit_code})"
     style = "green" if exit_code == 0 else "red"
     elapsed = pretty_duration(duration)
-    console.print()
-    console.print(f"Indexing complete: [bold {style}]{status}[/] in [cyan]{elapsed}[/]")
+    c.print()
+    c.print(f"Indexing complete: [bold {style}]{status}[/] in [cyan]{elapsed}[/]")
 
     return exit_code
 
@@ -423,7 +433,7 @@ def main() -> int:
 
     # Header
     _print_section("START")
-    c = console
+    c = _get_console()
     hostname_result = run_cmd("hostname")
     c.print(f"PID       : [cyan]{my_pid}[/]")
     hostname = (
@@ -500,15 +510,15 @@ def _locked_main() -> int:
     try:
         lock_fd = open(LOCK_FILE, "w", encoding="utf-8")  # noqa: SIM115
     except OSError as exc:
-        console.print(f"[red]Cannot create lock file {LOCK_FILE}: {exc}[/]")
+        _get_console().print(f"[red]Cannot create lock file {LOCK_FILE}: {exc}[/]")
         return 1
 
     fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     try:
         return main()
     except BaseException:
-        console.print("[bold red]Unhandled exception:[/]")
-        console.print_exception()
+        _get_console().print("[bold red]Unhandled exception:[/]")
+        _get_console().print_exception()
         return 1
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
