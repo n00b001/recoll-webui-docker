@@ -1,4 +1,4 @@
-name: Build and publish Docker image
+name: Build and publish Docker images
 
 on:
   push:
@@ -14,10 +14,23 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - image: recoll-webui
+            context: .
+
+          - image: recoll-engine
+            context: ./recoll-engine
+
+          - image: recoll-audio-worker
+            context: ./recoll-audio-worker
+
     steps:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -26,10 +39,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/recoll-webui:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest

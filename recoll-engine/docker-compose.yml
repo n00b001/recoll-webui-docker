@@ -1,0 +1,27 @@
+services:
+
+  recoll-engine:
+    image: ghcr.io/n00b001/recoll-engine:latest
+    container_name: recoll-engine
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          cpus: '6'
+          memory: 8G
+
+    volumes:
+      - /mnt/shuttle/share/app-data/recoll:/root
+
+      - /mnt/shuttle/share/syncthing/alex-hades-home:/homes/alex/hades
+      - /mnt/shuttle/share/syncthing/alex-phone:/homes/alex/phone
+      - /mnt/shuttle/share/alex-home/google-drive:/homes/alex/gdrive
+
+      - /mnt/shuttle/share/syncthing/chloe-home:/homes/chloe/home
+      - /mnt/shuttle/share/syncthing/chloe-phone:/homes/chloe/phone
+      - /mnt/shuttle/share/chloe-home/google-drive:/homes/chloe/gdrive
+
+    command:
+      - recollindex
