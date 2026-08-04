@@ -31,7 +31,7 @@ jobs:
         run: docker compose -f docker-compose.yml config --quiet
 
       - name: Lint — GitHub Actions
-        uses: rhysd/actionlint@v1
+        uses: rhysd/actionlint@v2
 
   test:
     runs-on: ubuntu-latest
