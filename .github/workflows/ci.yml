@@ -35,9 +35,22 @@ jobs:
         with:
           shell: sh
 
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan — TruffleHog
+        uses: trufflesecurity/trufflehog@v3.96.0
+        with:
+          extra_args: --results=verified,unverified
+
   test:
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, secrets]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
