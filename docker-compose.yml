@@ -40,6 +40,9 @@ x-constants:
   chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
   chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
   chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
+  # mbsync: application config directory (mounted read-only into container)
+  mbsync-config: &mbsync-config ./mbsync
+  # mbsync data directory is *mail-sync — where Maildir trees live
 
 services:
   # ========================================================================
@@ -289,7 +292,8 @@ services:
   # Recoll indexes the Maildir directory as individual .eml files.
   # Runs via cron (default: every 5 minutes).
   #
-  # Config: mbsyncrc (mounted, per-account)
+  # Config directory: mbsync/ (application config, mounted read-only)
+  # Data directory:   mail-sync/ (Maildir tree — where synced emails land)
   # Output: mail-sync/alex/INBOX/new/*.eml  →  Recoll indexes /homes/mail/
   # ========================================================================
 
@@ -300,12 +304,14 @@ services:
     networks:
       - search-infrastructure
     volumes:
+      # Data directory — Maildir tree where synced emails live
       - type: bind
         source: *mail-sync
         target: /home/msync/mail
+      # Application config directory — mbsyncrc mounted read-only
       - type: bind
-        source: ./mbsyncrc
-        target: /home/msync/.mfilter.d/mbsyncrc
+        source: *mbsync-config
+        target: /home/msync/.mfilter.d
         read_only: true
     environment:
       # Run every 5 minutes
