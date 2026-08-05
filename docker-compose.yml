@@ -2,11 +2,11 @@
 # Unified Search Infrastructure — Docker Compose
 # =============================================================================
 # Services:
-#   recoll-engine    — Document/image/audio indexer (OCR, EXIF, metadata)
-#   recoll-webui     — Recoll web search interface
-#   immich-server    — Photo/video management with ML search
-#   machine-learning — Immich ML backend (face recognition, CLIP tags)
-#   mail-archiver    — Email search and archive
+#   recoll-engine           — Document/image/audio indexer (OCR, EXIF, metadata)
+#   recoll-webui            — Recoll web search interface
+#   immich-server           — Photo/video management with ML search
+#   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
+#   mail-archiver           — Email search and archive
 #
 # Shared network: search-infrastructure
 # All services communicate internally; only web UIs are published.
@@ -17,18 +17,29 @@ networks:
     driver: bridge
 
 volumes:
-  # Immich
   immich-redis-data:
-  immich-cli-temp-storage:
-  # MailArchiver (Postgres data is bind-mounted, no named volume needed)
 
 # ---------------------------------------------------------------------------
-# TRUE-NAS NOTE
+# Constants — YAML anchors for DRY path references
+# Edit the path here once, reuse everywhere via *alias
 # ---------------------------------------------------------------------------
-# TrueNAS users: the `permissions` and `*_upgrade` init containers are
-# required for correct ownership. Standard Docker users can skip them
-# and set PUID/PGID on the main containers instead.
-# ---------------------------------------------------------------------------
+x-constants:
+  shuttle: &shuttle /mnt/shuttle/share
+  app-data: &app-data /mnt/shuttle/share/app-data
+  syncthing: &syncthing /mnt/shuttle/share/syncthing
+  alex-home: &alex-home /mnt/shuttle/share/alex-home
+  chloe-home: &chloe-home /mnt/shuttle/share/chloe-home
+  recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
+  immich-data: &immich-data /mnt/shuttle/share/app-data/immich
+  mail-data: &mail-data /mnt/shuttle/share/app-data/mail-archiver
+  alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
+  alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
+  alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
+  alex-gphotos: &alex-gphotos /mnt/shuttle/share/alex-home/google-photos
+  chloe-home-sync: &chloe-home-sync /mnt/shuttle/share/syncthing/chloe-home
+  chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
+  chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
+  chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
 
 services:
   # ========================================================================
@@ -47,20 +58,47 @@ services:
           cpus: '6'
           memory: 8G
     volumes:
-      # Index data and config
-      - /mnt/shuttle/share/app-data/recoll:/root
-      # recoll.conf override
-      - ./recoll.conf:/root/.recoll/recoll.conf:ro
+      - type: bind
+        source: *recoll-data
+        target: /root
+      - type: bind
+        source: ./recoll.conf
+        target: /root/.recoll/recoll.conf
+        read_only: true
       # Alex
-      - /mnt/shuttle/share/syncthing/alex-hades-home:/homes/alex/hades:ro
-      - /mnt/shuttle/share/syncthing/alex-phone:/homes/alex/phone:ro
-      - /mnt/shuttle/share/alex-home/google-drive:/homes/alex/gdrive:ro
-      - /mnt/shuttle/share/alex-home/google-photos:/homes/alex/gphotos:ro
+      - type: bind
+        source: *alex-hades
+        target: /homes/alex/hades
+        read_only: true
+      - type: bind
+        source: *alex-phone
+        target: /homes/alex/phone
+        read_only: true
+      - type: bind
+        source: *alex-gdrive
+        target: /homes/alex/gdrive
+        read_only: true
+      - type: bind
+        source: *alex-gphotos
+        target: /homes/alex/gphotos
+        read_only: true
       # Chloe
-      - /mnt/shuttle/share/syncthing/chloe-home:/homes/chloe/home:ro
-      - /mnt/shuttle/share/syncthing/chloe-phone:/homes/chloe/phone:ro
-      - /mnt/shuttle/share/chloe-home/google-drive:/homes/chloe/gdrive:ro
-      - /mnt/shuttle/share/chloe-home/google-photos:/homes/chloe/gphotos:ro
+      - type: bind
+        source: *chloe-home-sync
+        target: /homes/chloe/home
+        read_only: true
+      - type: bind
+        source: *chloe-phone
+        target: /homes/chloe/phone
+        read_only: true
+      - type: bind
+        source: *chloe-gdrive
+        target: /homes/chloe/gdrive
+        read_only: true
+      - type: bind
+        source: *chloe-gphotos
+        target: /homes/chloe/gphotos
+        read_only: true
     command:
       - recollindex
 
@@ -75,7 +113,9 @@ services:
     depends_on:
       - recoll-engine
     volumes:
-      - /mnt/shuttle/share/app-data/recoll:/root
+      - type: bind
+        source: *recoll-data
+        target: /root
 
   # ========================================================================
   # IMMICH — Photo/Video Management with ML Search
@@ -115,18 +155,44 @@ services:
       immich-redis:
         condition: service_healthy
     volumes:
-      - /mnt/shuttle/share/app-data/immich/upload:/usr/src/app/upload
+      - type: bind
+        source: *immich-data
+        target: /upload
       # Google Photos imports
-      - /mnt/shuttle/share/alex-home/google-photos:/data/gphotos-alex:ro
-      - /mnt/shuttle/share/chloe-home/google-photos:/data/gphotos-chloe:ro
+      - type: bind
+        source: *alex-gphotos
+        target: /data/gphotos-alex
+        read_only: true
+      - type: bind
+        source: *chloe-gphotos
+        target: /data/gphotos-chloe
+        read_only: true
       # Google Drive
-      - /mnt/shuttle/share/alex-home/google-drive:/data/gdrive-alex:ro
-      - /mnt/shuttle/share/chloe-home/google-drive:/data/gdrive-chloe:ro
+      - type: bind
+        source: *alex-gdrive
+        target: /data/gdrive-alex
+        read_only: true
+      - type: bind
+        source: *chloe-gdrive
+        target: /data/gdrive-chloe
+        read_only: true
       # Syncthing
-      - /mnt/shuttle/share/syncthing/alex-hades-home:/data/sync-alex-home:ro
-      - /mnt/shuttle/share/syncthing/alex-phone:/data/sync-alex-phone:ro
-      - /mnt/shuttle/share/syncthing/chloe-home:/data/sync-chloe-home:ro
-      - /mnt/shuttle/share/syncthing/chloe-phone:/data/sync-chloe-phone:ro
+      - type: bind
+        source: *alex-hades
+        target: /data/sync-alex-home
+        read_only: true
+      - type: bind
+        source: *alex-phone
+        target: /data/sync-alex-phone
+        read_only: true
+      - type: bind
+        source: *chloe-home-sync
+        target: /data/sync-chloe-home
+        read_only: true
+      - type: bind
+        source: *chloe-phone
+        target: /data/sync-chloe-phone
+        read_only: true
     healthcheck:
       test: ['CMD', 'immich-machine-learning-healthcheck']
       interval: 30s
@@ -155,7 +221,9 @@ services:
       IMMICH_PORT: '3003'
       HF_HOME: /mlcache
     volumes:
-      - /mnt/shuttle/share/app-data/immich/model-cache:/mlcache
+      - type: bind
+        source: *immich-data
+        target: /model-cache
     group_add:
       - '44'
       - '107'
@@ -176,7 +244,9 @@ services:
       POSTGRES_USER: ${IMMICH_DB_USER:-immich}
       POSTGRES_DB: ${IMMICH_DB_NAME:-immich}
     volumes:
-      - /mnt/shuttle/share/app-data/immich/pg_data:/var/lib/postgresql/data
+      - type: bind
+        source: *immich-data
+        target: /pg_data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 30s
@@ -238,7 +308,9 @@ services:
       mail-archiver-postgres:
         condition: service_healthy
     volumes:
-      - /mnt/shuttle/share/app-data/mail-archiver/data:/app/DataProtection-Keys
+      - type: bind
+        source: *mail-data
+        target: /app/DataProtection-Keys
     healthcheck:
       test: >
         curl -f http://127.0.0.1:8080/favicon.svg -o /dev/null -s || exit 1
@@ -263,7 +335,9 @@ services:
       POSTGRES_USER: mailarchiver
       POSTGRES_PASSWORD: ${MAIL_ARCHIVE_DB_PASSWORD:-}
     volumes:
-      - /mnt/shuttle/share/app-data/mail-archiver/pg_data:/var/lib/postgresql/data
+      - type: bind
+        source: *mail-data
+        target: /pg_data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U mailarchiver -d mailarchiver']
       interval: 30s
