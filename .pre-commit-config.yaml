@@ -13,6 +13,13 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: whatsapp-test
+        name: whatsapp-archiver tests
+        entry: bash -c 'cd whatsapp-archiver && npm test'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
 
   - repo: https://github.com/trufflesecurity/trufflehog
     rev: v3.96.0
