@@ -1,29 +1,352 @@
+# =============================================================================
+# Unified Search Infrastructure — Docker Compose
+# =============================================================================
+# Services:
+#   recoll-engine           — Document/image/audio indexer (OCR, EXIF, metadata)
+#   recoll-webui            — Recoll web search interface
+#   immich-server           — Photo/video management with ML search
+#   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
+#   mail-archiver           — Email search and archive
+#
+# Shared network: search-infrastructure
+# All services communicate internally; only web UIs are published.
+# =============================================================================
+
+networks:
+  search-infrastructure:
+    driver: bridge
+
+volumes:
+  immich-redis-data:
+
+# ---------------------------------------------------------------------------
+# Constants — YAML anchors for DRY path references
+# Edit the path here once, reuse everywhere via *alias
+# ---------------------------------------------------------------------------
+x-constants:
+  shuttle: &shuttle /mnt/shuttle/share
+  app-data: &app-data /mnt/shuttle/share/app-data
+  syncthing: &syncthing /mnt/shuttle/share/syncthing
+  alex-home: &alex-home /mnt/shuttle/share/alex-home
+  chloe-home: &chloe-home /mnt/shuttle/share/chloe-home
+  recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
+  immich-data: &immich-data /mnt/shuttle/share/app-data/immich
+  mail-data: &mail-data /mnt/shuttle/share/app-data/mail-archiver
+  mail-exports: &mail-exports /mnt/shuttle/share/app-data/mail-archiver/exports
+  alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
+  alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
+  alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
+  alex-gphotos: &alex-gphotos /mnt/shuttle/share/alex-home/google-photos
+  chloe-home-sync: &chloe-home-sync /mnt/shuttle/share/syncthing/chloe-home
+  chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
+  chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
+  chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
+
 services:
+  # ========================================================================
+  # RECOLL — Document, Image, Audio Search Engine
+  # ========================================================================
+
   recoll-engine:
     container_name: recoll-engine
     image: ghcr.io/n00b001/recoll-engine:latest
     restart: unless-stopped
+    networks:
+      - search-infrastructure
     deploy:
       resources:
         limits:
           cpus: '6'
           memory: 8G
     volumes:
-      - /mnt/shuttle/share/app-data/recoll:/root
-      - /mnt/shuttle/share/syncthing/alex-hades-home:/homes/alex/hades
-      - /mnt/shuttle/share/syncthing/alex-phone:/homes/alex/phone
-      - /mnt/shuttle/share/alex-home/google-drive:/homes/alex/gdrive
-      - /mnt/shuttle/share/syncthing/chloe-home:/homes/chloe/home
-      - /mnt/shuttle/share/syncthing/chloe-phone:/homes/chloe/phone
-      - /mnt/shuttle/share/chloe-home/google-drive:/homes/chloe/gdrive
+      - type: bind
+        source: *recoll-data
+        target: /root
+      - type: bind
+        source: ./recoll.conf
+        target: /root/.recoll/recoll.conf
+        read_only: true
+      # Alex
+      - type: bind
+        source: *alex-hades
+        target: /homes/alex/hades
+        read_only: true
+      - type: bind
+        source: *alex-phone
+        target: /homes/alex/phone
+        read_only: true
+      - type: bind
+        source: *alex-gdrive
+        target: /homes/alex/gdrive
+        read_only: true
+      - type: bind
+        source: *alex-gphotos
+        target: /homes/alex/gphotos
+        read_only: true
+      # Chloe
+      - type: bind
+        source: *chloe-home-sync
+        target: /homes/chloe/home
+        read_only: true
+      - type: bind
+        source: *chloe-phone
+        target: /homes/chloe/phone
+        read_only: true
+      - type: bind
+        source: *chloe-gdrive
+        target: /homes/chloe/gdrive
+        read_only: true
+      - type: bind
+        source: *chloe-gphotos
+        target: /homes/chloe/gphotos
+        read_only: true
+    command:
+      - recollindex
 
   recoll-webui:
     container_name: recoll-webui
     image: ghcr.io/n00b001/recoll-webui:latest
     restart: unless-stopped
+    networks:
+      - search-infrastructure
     ports:
       - '9080:8080'
     depends_on:
       - recoll-engine
     volumes:
-      - /mnt/shuttle/share/app-data/recoll:/root
+      - type: bind
+        source: *recoll-data
+        target: /root
+
+  # ========================================================================
+  # IMMICH — Photo/Video Management with ML Search
+  # ========================================================================
+
+  immich-server:
+    container_name: immich-server
+    image: ghcr.io/immich-app/immich-server:v1.126.0
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    ports:
+      - '2283:3001'
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      NODE_ENV: production
+      DB_HOSTNAME: immich-postgres
+      DB_USERNAME: ${IMMICH_DB_USER:-immich}
+      DB_PASSWORD: ${IMMICH_DB_PASSWORD:-}
+      DB_DATABASE_NAME: ${IMMICH_DB_NAME:-immich}
+      DB_PORT: '5432'
+      REDIS_HOSTNAME: immich-redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ${IMMICH_REDIS_PASSWORD:-}
+      REDIS_DBINDEX: '0'
+      IMMICH_MACHINE_LEARNING_ENABLED: 'true'
+      IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
+    depends_on:
+      immich-postgres:
+        condition: service_healthy
+      immich-redis:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: *immich-data
+        target: /upload
+      # Google Photos imports
+      - type: bind
+        source: *alex-gphotos
+        target: /data/gphotos-alex
+        read_only: true
+      - type: bind
+        source: *chloe-gphotos
+        target: /data/gphotos-chloe
+        read_only: true
+      # Google Drive
+      - type: bind
+        source: *alex-gdrive
+        target: /data/gdrive-alex
+        read_only: true
+      - type: bind
+        source: *chloe-gdrive
+        target: /data/gdrive-chloe
+        read_only: true
+      # Syncthing
+      - type: bind
+        source: *alex-hades
+        target: /data/sync-alex-home
+        read_only: true
+      - type: bind
+        source: *alex-phone
+        target: /data/sync-alex-phone
+        read_only: true
+      - type: bind
+        source: *chloe-home-sync
+        target: /data/sync-chloe-home
+        read_only: true
+      - type: bind
+        source: *chloe-phone
+        target: /data/sync-chloe-phone
+        read_only: true
+    healthcheck:
+      test: ['CMD', 'immich-machine-learning-healthcheck']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    group_add:
+      - '44'
+      - '107'
+
+  immich-machine-learning:
+    container_name: immich-machine-learning
+    image: ghcr.io/immich-app/immich-machine-learning:v1.126.0
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      NODE_ENV: production
+      IMMICH_PORT: '3003'
+      HF_HOME: /mlcache
+    volumes:
+      - type: bind
+        source: *immich-data
+        target: /model-cache
+    group_add:
+      - '44'
+      - '107'
+
+  immich-postgres:
+    container_name: immich-postgres
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4096M
+    environment:
+      POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD:-}
+      POSTGRES_USER: ${IMMICH_DB_USER:-immich}
+      POSTGRES_DB: ${IMMICH_DB_NAME:-immich}
+    volumes:
+      - type: bind
+        source: *immich-data
+        target: /pg_data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    shm_size: 256M
+    stop_grace_period: 60s
+
+  immich-redis:
+    container_name: immich-redis
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    command: ['--requirepass', '${IMMICH_REDIS_PASSWORD:-}']
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
+    volumes:
+      - immich-redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${IMMICH_REDIS_PASSWORD:-}', 'ping']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ========================================================================
+  # MAILARCHIVER — Email Search
+  # ========================================================================
+
+  mail-archiver:
+    container_name: mail-archiver
+    image: s1t5/mailarchiver:latest
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    ports:
+      - '30315:8080'
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      Authentication__Username: ${MAIL_ARCHIVE_USER:-admin}
+      Authentication__Password: ${MAIL_ARCHIVE_PASSWORD:-}
+      ConnectionStrings__DefaultConnection: >-
+        Host=mail-archiver-postgres;
+        Database=mailarchiver;
+        Username=mailarchiver;
+        Password=${MAIL_ARCHIVE_DB_PASSWORD:-}
+      Kestrel__Endpoints__Http__Url: http://+:8080
+      TimeZone__DisplayTimeZoneId: Europe/London
+    depends_on:
+      mail-archiver-postgres:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: *mail-data
+        target: /app/DataProtection-Keys
+      - type: bind
+        source: *mail-exports
+        target: /app/exports
+    healthcheck:
+      test: >
+        curl -f http://127.0.0.1:8080/favicon.svg -o /dev/null -s || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  mail-archiver-postgres:
+    container_name: mail-archiver-postgres
+    image: postgres:18-alpine
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      POSTGRES_DB: mailarchiver
+      POSTGRES_USER: mailarchiver
+      POSTGRES_PASSWORD: ${MAIL_ARCHIVE_DB_PASSWORD:-}
+    volumes:
+      - type: bind
+        source: *mail-data
+        target: /pg_data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U mailarchiver -d mailarchiver']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    shm_size: 256M
+    stop_grace_period: 60s

@@ -13,3 +13,8 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.96.0
+    hooks:
+      - id: trufflehog
