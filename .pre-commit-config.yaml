@@ -21,6 +21,14 @@ repos:
         always_run: true
         stages: [pre-push]
 
+      - id: recoll-test
+        name: recoll_wrapper tests
+        entry: bash -c 'cd recoll_wrapper && uv run pytest -v'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
   - repo: https://github.com/trufflesecurity/trufflehog
     rev: v3.96.0
     hooks:

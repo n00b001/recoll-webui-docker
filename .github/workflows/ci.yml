@@ -55,21 +55,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---- Python tests (recoll_wrapper) ----
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
-      - name: Run tests
-        run: cd recoll_wrapper && uv run pytest tests/ -v
+      - name: Recoll wrapper — tests + coverage (80%)
+        run: cd recoll_wrapper && uv run pytest -v
 
-  test-whatsapp:
-    runs-on: ubuntu-latest
-    needs: [lint, secrets]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      # ---- JavaScript tests (whatsapp-archiver) ----
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,10 +72,10 @@ jobs:
           cache: npm
           cache-dependency-path: whatsapp-archiver/package-lock.json
 
-      - name: Install dependencies
+      - name: WhatsApp archiver — install deps
         working-directory: whatsapp-archiver
         run: npm ci
 
-      - name: Run tests with coverage (80% threshold)
+      - name: WhatsApp archiver — tests + coverage (80%)
         working-directory: whatsapp-archiver
         run: npm test
