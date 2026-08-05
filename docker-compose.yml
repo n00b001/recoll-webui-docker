@@ -32,6 +32,7 @@ x-constants:
   recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
   immich-data: &immich-data /mnt/shuttle/share/app-data/immich
   mail-data: &mail-data /mnt/shuttle/share/app-data/mail-archiver
+  mail-exports: &mail-exports /mnt/shuttle/share/app-data/mail-archiver/exports
   alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
   alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
   alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
@@ -311,6 +312,9 @@ services:
       - type: bind
         source: *mail-data
         target: /app/DataProtection-Keys
+      - type: bind
+        source: *mail-exports
+        target: /app/exports
     healthcheck:
       test: >
         curl -f http://127.0.0.1:8080/favicon.svg -o /dev/null -s || exit 1
