@@ -33,6 +33,7 @@ x-constants:
   immich-data: &immich-data /mnt/shuttle/share/app-data/immich
   mail-data: &mail-data /mnt/shuttle/share/app-data/mail-archiver
   mail-exports: &mail-exports /mnt/shuttle/share/app-data/mail-archiver/exports
+  mail-sync: &mail-sync /mnt/shuttle/share/app-data/mail-sync
   alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
   alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
   alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
@@ -99,6 +100,11 @@ services:
       - type: bind
         source: *chloe-gphotos
         target: /homes/chloe/gphotos
+        read_only: true
+      # Synced email (Maildir tree from mbsync)
+      - type: bind
+        source: *mail-sync
+        target: /homes/mail
         read_only: true
     command:
       - recollindex
@@ -277,6 +283,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  # ========================================================================
+  # MBSYNC — IMAP → Maildir Sync (for Recoll email indexing)
+  # ========================================================================
+  # mbsync syncs IMAP mailboxes to a local Maildir tree.
+  # Recoll indexes the Maildir directory as individual .eml files.
+  # Runs via cron (default: every 5 minutes).
+  #
+  # Config: mbsyncrc (mounted, per-account)
+  # Output: mail-sync/alex/INBOX/new/*.eml  →  Recoll indexes /homes/mail/
+  # ========================================================================
+
+  mbsync:
+    container_name: mbsync
+    image: ghcr.io/stefanbuck/m-sync:latest
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    volumes:
+      - type: bind
+        source: *mail-sync
+        target: /home/msync/mail
+      - type: bind
+        source: ./mbsyncrc
+        target: /home/msync/.mfilter.d/mbsyncrc
+        read_only: true
+    environment:
+      # Run every 5 minutes
+      CRON_EXPRESSION: '*/5 * * * *'
+      # One-shot mode: sync all accounts then wait for next cron tick
+      MBSYNC_ONE_SHOT: 'true'
+    # No ports exposed — background sync only
 
   # ========================================================================
   # MAILARCHIVER — Email Search

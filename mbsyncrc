@@ -1,0 +1,71 @@
+# =============================================================================
+# mbsync Configuration — IMAP → Maildir Sync
+# =============================================================================
+# Mounted to /home/msync/.mfilter.d/mbsyncrc in the container.
+#
+# Each "IMAPAccount" block defines one mailbox to sync.
+# Edit credentials below and set environment variables in .env.
+#
+# IMPORTANT: Store passwords in .env file, not here.
+# Use PassCmd to read from environment variables for security.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Alex's Outlook.com email
+# ---------------------------------------------------------------------------
+IMAPAccount alex-imap
+    Host outlook.office365.com
+    Port 993
+    Proto IMAP
+    User ${ALEX_IMAP_USER}
+    PassCmd "echo $ALEX_IMAP_PASS"
+    SSLType IMAPS
+    SlaveType Maildir
+    SyncState *
+
+IMAPStore alex-remote
+    AccountName alex-imap
+
+MaildirStore alex-local
+    Path /home/msync/mail/alex/%r/%r/
+    SubFolders Verbatim
+    CreateIn .
+    Sep /
+
+Channel alex-channel
+    Master alex-remote
+    Slave alex-local
+    Pattern INBOX;INBOX.*
+    Sync Both
+    Expunge Slaves
+    Autosync no
+
+# ---------------------------------------------------------------------------
+# Add more accounts below (uncomment and edit)
+# ---------------------------------------------------------------------------
+# IMAPAccount chloe-imap
+#     Host outlook.office365.com
+#     Port 993
+#     Proto IMAP
+#     User ${CHLOE_IMAP_USER}
+#     PassCmd "echo $CHLOE_IMAP_PASS"
+#     SSLType IMAPS
+#     SlaveType Maildir
+#     SyncState *
+#
+# IMAPStore chloe-remote
+#     AccountName chloe-imap
+#
+# MaildirStore chloe-local
+#     Path /home/msync/mail/chloe/%r/%r/
+#     SubFolders Verbatim
+#     CreateIn .
+#     Sep /
+#
+# Channel chloe-channel
+#     Master chloe-remote
+#     Slave chloe-local
+#     Pattern INBOX;INBOX.*
+#     Sync Both
+#     Expunge Slaves
+#     Autosync no
