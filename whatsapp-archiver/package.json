@@ -4,9 +4,15 @@
   "description": "Baileys-based WhatsApp message and media archiver for Recoll indexing",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest --coverage"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.7"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "vitest": "^4.1.10"
   }
 }

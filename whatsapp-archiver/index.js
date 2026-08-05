@@ -26,6 +26,16 @@ import {
 } from '@whiskeysockets/baileys'
 import fs from 'fs/promises'
 import path from 'path'
+import {
+  dateFolder,
+  safeName,
+  msgStem,
+  extForType,
+  sender,
+  chatKey,
+  extractText,
+  formatChatLine,
+} from './lib.js'
 
 // ---------------------------------------------------------------------------
 // Config
@@ -38,75 +48,12 @@ const CHATS_DIR = path.join(DATA_DIR, 'chats', ACCOUNT_NAME)
 const MEDIA_DIR = path.join(DATA_DIR, 'media', ACCOUNT_NAME)
 
 // ---------------------------------------------------------------------------
-// Helpers
+// FS helpers
 // ---------------------------------------------------------------------------
 
 /** Ensure a directory exists (recursive mkdir). */
 async function ensureDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true })
-}
-
-/** Format a Date as YYYY-MM for folder naming. */
-function dateFolder(d) {
-  return d.toISOString().slice(0, 7) // "2026-08"
-}
-
-/** Format a Date as HH:MM:SS for chat log lines. */
-function timeStr(d) {
-  return d.toTimeString().slice(0, 8) // "14:32:01"
-}
-
-/** Sanitize a chat name into a safe filename. */
-function safeName(raw) {
-  return raw
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 200)
-}
-
-/** Derive a filename stem from a message key. */
-function msgStem(msg) {
-  const ts = msg.messageTimestamp
-    ? new Date(Number(msg.messageTimestamp) * 1000).toISOString().replace(/[:.]/g, '-')
-    : 'unknown'
-  return `${ts}_${String(msg.key.id || 'noid').slice(0, 8)}`
-}
-
-/** Map Baileys content type to a file extension. */
-function extForType(type) {
-  const map = {
-    imageMessage: '.jpg',
-    videoMessage: '.mp4',
-    audioMessage: '.ogg',
-    documentMessage: '.bin',
-    stickerMessage: '.webp',
-  }
-  return map[type] || '.dat'
-}
-
-/** Get the sender display name for a message. */
-function sender(msg) {
-  if (msg.key.fromMe) return 'Me'
-  // Group: participant
-  if (msg.key.participant) {
-    const jid = msg.key.participant
-    return jid.split('@')[0] || 'unknown'
-  }
-  // DM: remoteJid
-  const jid = msg.key.remoteJid
-  if (jid.endsWith('@s.whatsapp.net')) return jid.replace('@s.whatsapp.net', '')
-  return jid
-}
-
-/** Get the chat key (filename-safe conversation identifier). */
-function chatKey(msg) {
-  const remote = msg.key.remoteJid || 'unknown'
-  // Groups already have readable names; DMs are phone numbers
-  if (msg.message?.extendedTextMessage) {
-    return safeName(remote)
-  }
-  return safeName(remote)
 }
 
 // ---------------------------------------------------------------------------
@@ -161,40 +108,10 @@ async function appendChat(msg) {
   const d = msg.messageTimestamp
     ? new Date(Number(msg.messageTimestamp) * 1000)
     : new Date()
-  const s = sender(msg)
-  const messageObj = msg.message
 
-  // Extract text from various message types
-  let text = ''
-  if (messageObj.conversation) {
-    text = messageObj.conversation
-  } else if (messageObj.extendedTextMessage?.text) {
-    text = messageObj.extendedTextMessage.text
-  } else if (messageObj.imageMessage?.caption) {
-    text = messageObj.imageMessage.caption
-  } else if (messageObj.videoMessage?.caption) {
-    text = messageObj.videoMessage.caption
-  } else if (messageObj.documentMessage?.caption) {
-    text = messageObj.documentMessage.caption
-  } else if (messageObj.audioMessage) {
-    text = '🎤 [voice message]'
-  } else if (messageObj.imageMessage) {
-    text = '📷 [image]'
-  } else if (messageObj.videoMessage) {
-    text = '🎥 [video]'
-  } else if (messageObj.documentMessage) {
-    text = `📄 [document: ${messageObj.documentMessage.fileName || 'unnamed'}]`
-  } else if (messageObj.stickerMessage) {
-    text = '🟩 [sticker]'
-  } else if (messageObj.protocolMessage) {
-    // Message edit, delete, etc. — skip
-    return
-  } else {
-    const type = getContentType(msg)
-    text = `[${type || 'unknown'}]`
-  }
+  const line = formatChatLine(msg, d)
+  if (line === null) return // protocol messages — skip
 
-  const line = `[${timeStr(d)}] ${s}: ${text}\n`
   await fs.appendFile(chatFile, line, 'utf-8')
 }
 
