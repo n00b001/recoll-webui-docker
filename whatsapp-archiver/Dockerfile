@@ -15,5 +15,5 @@ COPY index.js ./
 RUN useradd -m -u 1000 archiver && chown -R archiver:archiver /app
 USER archiver
 
-VOLUME ["/data"]
+VOLUME ["/config", "/data"]
 CMD ["node", "index.js"]

@@ -9,7 +9,7 @@ dated folders.
 ## How It Works
 
 1. **First run**: scan the QR code printed to the terminal
-2. Session persists to `/data/sessions/{account}/` — no re-scan on restart
+2. Session persists to `/config/sessions/{account}/` — no re-scan on restart
 3. Messages are appended to `/data/chats/{account}/{contact}.txt`
 4. Media is downloaded to `/data/media/{account}/{type}/YYYY-MM/`
 5. Recoll indexes the `.txt` files for full-text search
@@ -17,10 +17,12 @@ dated folders.
 ## Output Layout
 
 ```
-/data/
-├── sessions/default/       # Baileys auth state (persistent)
+/config/                          # application config (sessions)
+└── sessions/default/             # Baileys auth state (persistent)
+
+/data/                            # exports (indexed by Recoll)
 ├── chats/default/
-│   ├── +1234567890.txt     # one file per conversation
+│   ├── +1234567890.txt           # one file per conversation
 │   └── Group-Name.txt
 └── media/default/
     ├── images/2026-08/
@@ -35,16 +37,17 @@ dated folders.
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATA_DIR` | `/data` | Root data directory |
-| `ACCOUNT_NAME` | `default` | Label for this session (for multi-account) |
-| `LOG_LEVEL` | `info` | Baileys log level |
+| `CONFIG_DIR` | `/config` | Session storage directory |
+| `DATA_DIR` | `/data` | Exports root (chats, media) |
+| `ACCOUNT_NAME` | `default` | Label for this session (multi-account) |
 
 ## Docker
 
 ```bash
 docker run -d \
   --name whatsapp-archiver \
-  -v /path/to/whatsapp:/data \
+  -v /path/to/whatsapp/config:/config \
+  -v /path/to/whatsapp/data:/data \
   ghcr.io/n00b001/whatsapp-archiver:latest
 ```
 
@@ -58,17 +61,18 @@ whatsapp-alex:
   environment:
     ACCOUNT_NAME: alex
   volumes:
-    - /path/to/whatsapp-alex:/data
+    - /path/to/whatsapp-alex/config:/config
+    - /path/to/whatsapp-alex/data:/data
 
 whatsapp-chloe:
   image: ghcr.io/n00b001/whatsapp-archiver:latest
   environment:
     ACCOUNT_NAME: chloe
   volumes:
-    - /path/to/whatsapp-chloe:/data
+    - /path/to/whatsapp-chloe/config:/config
+    - /path/to/whatsapp-chloe/data:/data
 ```
 
 ## Dependencies
 
 - [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys) — WhatsApp Web multi-device SDK
-- [@hapi/boom](https://github.com/hapijs/boom) — Error handling (Baileys dependency)

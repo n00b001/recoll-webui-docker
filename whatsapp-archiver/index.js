@@ -6,14 +6,14 @@
  * attachments (photos, audio, video, documents) to dated folders.
  *
  * Output layout:
- *   /data/sessions/{account}/    — Baileys auth state (persistent)
- *   /data/chats/{account}/{chat}.txt      — appended text messages
- *   /data/media/{account}/{type}/YYYY-MM/  — downloaded attachments
+ *   /config/sessions/{account}/  — Baileys auth state (persistent)
+ *   /data/chats/{account}/       — appended .txt per conversation
+ *   /data/media/{account}/       — downloaded attachments by type
  *
  * Environment:
- *   DATA_DIR      — root data directory (default: /data)
- *   ACCOUNT_NAME  — label for this session (default: default)
- *   LOG_LEVEL     — baileys log level (default: info)
+ *   SESSION_DIR — Baileys session storage (default: /config/sessions)
+ *   DATA_DIR    — exports root (chats, media) (default: /data)
+ *   ACCOUNT_NAME — label for this session (default: default)
  */
 
 import {
@@ -30,9 +30,10 @@ import path from 'path'
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
+const CONFIG_DIR = process.env.CONFIG_DIR || '/config'
 const DATA_DIR = process.env.DATA_DIR || '/data'
 const ACCOUNT_NAME = process.env.ACCOUNT_NAME || 'default'
-const SESSION_DIR = path.join(DATA_DIR, 'sessions', ACCOUNT_NAME)
+const SESSION_DIR = path.join(CONFIG_DIR, 'sessions', ACCOUNT_NAME)
 const CHATS_DIR = path.join(DATA_DIR, 'chats', ACCOUNT_NAME)
 const MEDIA_DIR = path.join(DATA_DIR, 'media', ACCOUNT_NAME)
 
@@ -202,6 +203,7 @@ async function appendChat(msg) {
 // ---------------------------------------------------------------------------
 async function main() {
   console.log(`[archiver] account: ${ACCOUNT_NAME}`)
+  console.log(`[archiver] config dir: ${CONFIG_DIR}`)
   console.log(`[archiver] data dir: ${DATA_DIR}`)
 
   // Ensure dirs exist
