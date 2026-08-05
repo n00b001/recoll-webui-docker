@@ -26,6 +26,9 @@ jobs:
           - image: recoll-audio-worker
             context: ./recoll-audio-worker
 
+          - image: whatsapp-archiver
+            context: ./whatsapp-archiver
+
     steps:
 
       - name: Checkout repository

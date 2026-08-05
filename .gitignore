@@ -7,3 +7,5 @@ __pycache__/
 recollindex.sh
 src/
 .playwright-mcp/
+whatsapp-archiver/node_modules/
+whatsapp-archiver/.output/

@@ -7,6 +7,7 @@
 #   immich-server           — Photo/video management with ML search
 #   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
 #   mbsync                  — IMAP → Maildir sync (for Recoll email indexing)
+#   whatsapp-archiver       — WhatsApp message/media export (Baileys multi-device client)
 #
 # Shared network: search-infrastructure
 # All services communicate internally; only web UIs are published.
@@ -31,7 +32,12 @@ x-constants:
   chloe-home: &chloe-home /mnt/shuttle/share/chloe-home
   recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
   immich-data: &immich-data /mnt/shuttle/share/app-data/immich
-  mail-sync: &mail-sync /mnt/shuttle/share/app-data/mail-sync
+  # mbsync: config (mbsyncrc) and data (Maildir tree)
+  mbsync-config: &mbsync-config /mnt/shuttle/share/app-data/mbsync/config
+  mbsync-data: &mbsync-data /mnt/shuttle/share/app-data/mbsync/data
+  # whatsapp: config (Baileys sessions) and data (chats, media exports)
+  whatsapp-config: &whatsapp-config /mnt/shuttle/share/app-data/whatsapp/config
+  whatsapp-data: &whatsapp-data /mnt/shuttle/share/app-data/whatsapp/data
   alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
   alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
   alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
@@ -40,9 +46,6 @@ x-constants:
   chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
   chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
   chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
-  # mbsync: application config directory (mounted read-only into container)
-  mbsync-config: &mbsync-config ./mbsync
-  # mbsync data directory is *mail-sync — where Maildir trees live
 
 services:
   # ========================================================================
@@ -104,8 +107,13 @@ services:
         read_only: true
       # Synced email (Maildir tree from mbsync)
       - type: bind
-        source: *mail-sync
+        source: *mbsync-data
         target: /homes/mail
+        read_only: true
+      # WhatsApp exported chats and media
+      - type: bind
+        source: *whatsapp-data
+        target: /homes/whatsapp
         read_only: true
     command:
       - recollindex
@@ -292,9 +300,9 @@ services:
   # Recoll indexes the Maildir directory as individual .eml files.
   # Runs via cron (default: every 5 minutes).
   #
-  # Config directory: mbsync/ (application config, mounted read-only)
-  # Data directory:   mail-sync/ (Maildir tree — where synced emails land)
-  # Output: mail-sync/alex/INBOX/new/*.eml  →  Recoll indexes /homes/mail/
+  # Config: app-data/mbsync/config/ — mbsyncrc (mounted read-only)
+  # Data:   app-data/mbsync/data/   — Maildir tree (synced emails)
+  # Output: mbsync/data/alex/INBOX/new/*.eml → Recoll indexes /homes/mail/
   # ========================================================================
 
   mbsync:
@@ -304,19 +312,57 @@ services:
     networks:
       - search-infrastructure
     volumes:
-      # Data directory — Maildir tree where synced emails live
-      - type: bind
-        source: *mail-sync
-        target: /home/msync/mail
       # Application config directory — mbsyncrc mounted read-only
       - type: bind
         source: *mbsync-config
         target: /home/msync/.mfilter.d
         read_only: true
+      # Data directory — Maildir tree where synced emails live
+      - type: bind
+        source: *mbsync-data
+        target: /home/msync/mail
     environment:
       # Run every 5 minutes
       CRON_EXPRESSION: '*/5 * * * *'
       # One-shot mode: sync all accounts then wait for next cron tick
       MBSYNC_ONE_SHOT: 'true'
     # No ports exposed — background sync only
+
+  # ========================================================================
+  # WHATSAPP ARCHIVER — Baileys-based message and media export
+  # ========================================================================
+  # Connects as a WhatsApp Web multi-device client. Scans QR once, then
+  # continuously exports incoming messages to plain-text files and downloads
+  # all attachments (photos, audio, video, documents) to dated folders.
+  #
+  # Config: app-data/whatsapp/config/ — Baileys sessions (auth state)
+  # Data:   app-data/whatsapp/data/   — chats/*.txt, media/{type}/YYYY-MM/
+  # Recoll indexes /homes/whatsapp/ (the data volume mounted read-only).
+  # ========================================================================
+
+  whatsapp-archiver:
+    container_name: whatsapp-archiver
+    image: ghcr.io/n00b001/whatsapp-archiver:latest
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      SESSION_DIR: /config/sessions
+      DATA_DIR: /data
+      ACCOUNT_NAME: ${WHATSAPP_ACCOUNT_NAME:-default}
+      LOG_LEVEL: ${WHATSAPP_LOG_LEVEL:-info}
+    volumes:
+      # Application config — Baileys auth state (persistent session)
+      - type: bind
+        source: *whatsapp-config
+        target: /config
+      # Data — exported chats and media
+      - type: bind
+        source: *whatsapp-data
+        target: /data
 
