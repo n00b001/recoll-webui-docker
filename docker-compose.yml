@@ -7,6 +7,7 @@
 #   immich-server           — Photo/video management with ML search
 #   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
 #   mbsync                  — IMAP → Maildir sync (for Recoll email indexing)
+#   whatsapp-archiver       — WhatsApp message/media export (Baileys multi-device client)
 #
 # Shared network: search-infrastructure
 # All services communicate internally; only web UIs are published.
@@ -40,6 +41,8 @@ x-constants:
   chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
   chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
   chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
+  # WhatsApp archiver: exported chats and media (mounted read-only for Recoll indexing)
+  whatsapp-data: &whatsapp-data /mnt/shuttle/share/app-data/whatsapp
   # mbsync: application config directory (mounted read-only into container)
   mbsync-config: &mbsync-config ./mbsync
   # mbsync data directory is *mail-sync — where Maildir trees live
@@ -106,6 +109,11 @@ services:
       - type: bind
         source: *mail-sync
         target: /homes/mail
+        read_only: true
+      # WhatsApp exported chats and media
+      - type: bind
+        source: *whatsapp-data
+        target: /homes/whatsapp
         read_only: true
     command:
       - recollindex
@@ -319,4 +327,38 @@ services:
       # One-shot mode: sync all accounts then wait for next cron tick
       MBSYNC_ONE_SHOT: 'true'
     # No ports exposed — background sync only
+
+  # ========================================================================
+  # WHATSAPP ARCHIVER — Baileys-based message and media export
+  # ========================================================================
+  # Connects as a WhatsApp Web multi-device client. Scans QR once, then
+  # continuously exports incoming messages to plain-text files and downloads
+  # all attachments (photos, audio, video, documents) to dated folders.
+  #
+  # Chat text:   /whatsapp/chats/{account}/{contact}.txt
+  # Media:       /whatsapp/media/{account}/{type}/YYYY-MM/
+  # Sessions:    /whatsapp/sessions/{account}/
+  #
+  # Recoll indexes the chat .txt files for full-text search.
+  # ========================================================================
+
+  whatsapp-archiver:
+    container_name: whatsapp-archiver
+    image: ghcr.io/n00b001/whatsapp-archiver:latest
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    environment:
+      DATA_DIR: /data
+      ACCOUNT_NAME: ${WHATSAPP_ACCOUNT_NAME:-default}
+      LOG_LEVEL: ${WHATSAPP_LOG_LEVEL:-info}
+    volumes:
+      - type: bind
+        source: *whatsapp-data
+        target: /data
 
