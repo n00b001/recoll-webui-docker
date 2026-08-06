@@ -31,42 +31,37 @@ jobs:
         run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
 
       - name: Lint — Dockerfiles (hadolint)
-        uses: hadolint/hadolint-action@v1.16.3
+        uses: hadolint/hadolint-action@v3.4.0
         with:
-          format: github-checks
-          verbose: true
+          format: sarif
           failure-threshold: warning
           dockerfile: Dockerfile
 
       - name: Lint — recoll-engine/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v1.16.3
+        uses: hadolint/hadolint-action@v3.4.0
         with:
-          format: github-checks
-          verbose: true
+          format: sarif
           failure-threshold: warning
           dockerfile: recoll-engine/Dockerfile
 
       - name: Lint — recoll-audio-worker/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v1.16.3
+        uses: hadolint/hadolint-action@v3.4.0
         with:
-          format: github-checks
-          verbose: true
+          format: sarif
           failure-threshold: warning
           dockerfile: recoll-audio-worker/Dockerfile
 
       - name: Lint — whatsapp-archiver/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v1.16.3
+        uses: hadolint/hadolint-action@v3.4.0
         with:
-          format: github-checks
-          verbose: true
+          format: sarif
           failure-threshold: warning
           dockerfile: whatsapp-archiver/Dockerfile
 
       - name: Lint — sms-processor/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v1.16.3
+        uses: hadolint/hadolint-action@v3.4.0
         with:
-          format: github-checks
-          verbose: true
+          format: sarif
           failure-threshold: warning
           dockerfile: sms-processor/Dockerfile
 
