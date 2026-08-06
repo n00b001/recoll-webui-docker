@@ -57,6 +57,46 @@ repos:
         always_run: true
         stages: [pre-push]
 
+      - id: docker-build-recoll-webui
+        name: docker build (recoll-webui)
+        entry: bash -c 'docker build -t recoll-webui .'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docker-build-recoll-engine
+        name: docker build (recoll-engine)
+        entry: bash -c 'docker build -t recoll-engine ./recoll-engine'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docker-build-recoll-audio-worker
+        name: docker build (recoll-audio-worker)
+        entry: bash -c 'docker build -t recoll-audio-worker ./recoll-audio-worker'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docker-build-whatsapp-archiver
+        name: docker build (whatsapp-archiver)
+        entry: bash -c 'docker build -t whatsapp-archiver ./whatsapp-archiver'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docker-build-sms-processor
+        name: docker build (sms-processor)
+        entry: bash -c 'docker build -t sms-processor ./sms-processor'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
   - repo: https://github.com/trufflesecurity/trufflehog
     rev: v3.96.0
     hooks:
