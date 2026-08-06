@@ -30,41 +30,6 @@ jobs:
       - name: Type check — ty
         run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
 
-      - name: Lint — Dockerfile (docker-lint)
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: Dockerfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lint — recoll-engine/Dockerfile (docker-lint)
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: recoll-engine/Dockerfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lint — recoll-audio-worker/Dockerfile (docker-lint)
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: recoll-audio-worker/Dockerfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lint — whatsapp-archiver/Dockerfile (docker-lint)
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: whatsapp-archiver/Dockerfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lint — sms-processor/Dockerfile (docker-lint)
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: sms-processor/Dockerfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Validate Dockerfiles exist
         run: |
           for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
@@ -127,3 +92,35 @@ jobs:
       # ---- Python tests (sms-processor) ----
       - name: SMS processor — tests
         run: cd sms-processor && uv run pytest -v
+
+  hadolint:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lint — Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Lint — recoll-engine/Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: recoll-engine/Dockerfile
+
+      - name: Lint — recoll-audio-worker/Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: recoll-audio-worker/Dockerfile
+
+      - name: Lint — whatsapp-archiver/Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: whatsapp-archiver/Dockerfile
+
+      - name: Lint — sms-processor/Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: sms-processor/Dockerfile
