@@ -30,40 +30,40 @@ jobs:
       - name: Type check — ty
         run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
 
-      - name: Lint — Dockerfiles (hadolint)
-        uses: hadolint/hadolint-action@v3.4.0
+      - name: Lint — Dockerfile (docker-lint)
+        uses: luke142367/Docker-Lint-Action@v1.0.0
         with:
-          format: sarif
-          failure-threshold: warning
-          dockerfile: Dockerfile
+          target: Dockerfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lint — recoll-engine/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.4.0
+      - name: Lint — recoll-engine/Dockerfile (docker-lint)
+        uses: luke142367/Docker-Lint-Action@v1.0.0
         with:
-          format: sarif
-          failure-threshold: warning
-          dockerfile: recoll-engine/Dockerfile
+          target: recoll-engine/Dockerfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lint — recoll-audio-worker/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.4.0
+      - name: Lint — recoll-audio-worker/Dockerfile (docker-lint)
+        uses: luke142367/Docker-Lint-Action@v1.0.0
         with:
-          format: sarif
-          failure-threshold: warning
-          dockerfile: recoll-audio-worker/Dockerfile
+          target: recoll-audio-worker/Dockerfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lint — whatsapp-archiver/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.4.0
+      - name: Lint — whatsapp-archiver/Dockerfile (docker-lint)
+        uses: luke142367/Docker-Lint-Action@v1.0.0
         with:
-          format: sarif
-          failure-threshold: warning
-          dockerfile: whatsapp-archiver/Dockerfile
+          target: whatsapp-archiver/Dockerfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lint — sms-processor/Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.4.0
+      - name: Lint — sms-processor/Dockerfile (docker-lint)
+        uses: luke142367/Docker-Lint-Action@v1.0.0
         with:
-          format: sarif
-          failure-threshold: warning
-          dockerfile: sms-processor/Dockerfile
+          target: sms-processor/Dockerfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate Dockerfiles exist
         run: |
