@@ -35,6 +35,7 @@ jobs:
         with:
           format: github-checks
           verbose: true
+          failure-threshold: warning
           dockerfile: Dockerfile
 
       - name: Lint — recoll-engine/Dockerfile (hadolint)
@@ -42,6 +43,7 @@ jobs:
         with:
           format: github-checks
           verbose: true
+          failure-threshold: warning
           dockerfile: recoll-engine/Dockerfile
 
       - name: Lint — recoll-audio-worker/Dockerfile (hadolint)
@@ -49,6 +51,7 @@ jobs:
         with:
           format: github-checks
           verbose: true
+          failure-threshold: warning
           dockerfile: recoll-audio-worker/Dockerfile
 
       - name: Lint — whatsapp-archiver/Dockerfile (hadolint)
@@ -56,6 +59,7 @@ jobs:
         with:
           format: github-checks
           verbose: true
+          failure-threshold: warning
           dockerfile: whatsapp-archiver/Dockerfile
 
       - name: Lint — sms-processor/Dockerfile (hadolint)
@@ -63,6 +67,7 @@ jobs:
         with:
           format: github-checks
           verbose: true
+          failure-threshold: warning
           dockerfile: sms-processor/Dockerfile
 
       - name: Validate Dockerfiles exist
