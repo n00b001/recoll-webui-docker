@@ -3,13 +3,13 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix .'
+        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix . && cd ../sms-processor && uv run ruff check --fix .'
         language: system
         pass_filenames: false
         always_run: true
       - id: ty-check
         name: ty check
-        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src'
+        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src && cd ../sms-processor && uv run ty check .'
         language: system
         pass_filenames: false
         always_run: true
@@ -24,6 +24,14 @@ repos:
       - id: recoll-test
         name: recoll_wrapper tests
         entry: bash -c 'cd recoll_wrapper && uv run pytest -v'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: sms-test
+        name: sms-processor tests
+        entry: bash -c 'cd sms-processor && uv run pytest -v'
         language: system
         pass_filenames: false
         always_run: true
