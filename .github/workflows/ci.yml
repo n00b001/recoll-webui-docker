@@ -21,11 +21,28 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Lint — ruff
+      - name: Lint — ruff (recoll_wrapper)
         run: cd recoll_wrapper && uv run ruff check .
+
+      - name: Lint — ruff (sms-processor)
+        run: cd sms-processor && uv run ruff check .
 
       - name: Type check — ty
         run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
+
+      - name: Lint — Dockerfiles (hadolint)
+        run: |
+          docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
+          docker run --rm -i ghcr.io/hadolint/hadolint < recoll-engine/Dockerfile
+          docker run --rm -i ghcr.io/hadolint/hadolint < recoll-audio-worker/Dockerfile
+          docker run --rm -i ghcr.io/hadolint/hadolint < sms-processor/Dockerfile
+        continue-on-error: true
+
+      - name: Validate Dockerfiles exist
+        run: |
+          for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
+            test -f "$f" || { echo "FAIL: $f not found"; exit 1; }
+          done
 
       - name: Lint — Docker Compose
         run: docker compose -f docker-compose.yml config --quiet
@@ -79,3 +96,7 @@ jobs:
       - name: WhatsApp archiver — tests + coverage (80%)
         working-directory: whatsapp-archiver
         run: npm test
+
+      # ---- Python tests (sms-processor) ----
+      - name: SMS processor — tests
+        run: cd sms-processor && uv run pytest -v

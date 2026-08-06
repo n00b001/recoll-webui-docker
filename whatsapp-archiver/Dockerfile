@@ -1,7 +1,7 @@
 FROM node:20-slim AS builder
 
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --production
 
 FROM node:20-slim
