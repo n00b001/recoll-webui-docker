@@ -153,7 +153,7 @@ jobs:
             local title="$1" file="$2"
             echo "### $title"
             echo '```'
-            if [ -s "$file" ]; then
+            if grep -q '[^[:space:]]' "$file" 2>/dev/null; then
               cat "$file"
             else
               echo "No issues found."
