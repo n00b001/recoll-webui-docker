@@ -149,38 +149,26 @@ jobs:
       - name: Combine results
         id: combine
         run: |
+          show_result() {
+            local title="$1" file="$2"
+            echo "### $title"
+            echo '```'
+            if [ -s "$file" ]; then
+              cat "$file"
+            else
+              echo "No issues found."
+            fi
+            echo ''
+            echo '```'
+            echo ""
+          }
           {
-            echo "### Dockerfile"
-            echo '```'
-            cat hadolint-root.txt
-            echo ''
-            echo '```'
-            echo ""
-            echo "### recoll-engine/Dockerfile"
-            echo '```'
-            cat hadolint-engine.txt
-            echo ''
-            echo '```'
-            echo ""
-            echo "### recoll-audio-worker/Dockerfile"
-            echo '```'
-            cat hadolint-audio.txt
-            echo ''
-            echo '```'
-            echo ""
-            echo "### whatsapp-archiver/Dockerfile"
-            echo '```'
-            cat hadolint-whatsapp.txt
-            echo ''
-            echo '```'
-            echo ""
-            echo "### sms-processor/Dockerfile"
-            echo '```'
-            cat hadolint-sms.txt
-            echo ''
-            echo '```'
+            show_result "Dockerfile" hadolint-root.txt
+            show_result "recoll-engine/Dockerfile" hadolint-engine.txt
+            show_result "recoll-audio-worker/Dockerfile" hadolint-audio.txt
+            show_result "whatsapp-archiver/Dockerfile" hadolint-whatsapp.txt
+            show_result "sms-processor/Dockerfile" hadolint-sms.txt
           } > hadolint-results.md
-          # Base64-encode for safe GitHub output passing
           echo "results=$(base64 -w0 < hadolint-results.md)" >> "$GITHUB_OUTPUT"
 
       - name: Update Pull Request
