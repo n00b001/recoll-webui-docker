@@ -8,6 +8,7 @@
 #   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
 #   mbsync                  — IMAP → Maildir sync (for Recoll email indexing)
 #   whatsapp-archiver       — WhatsApp message/media export (Baileys multi-device client)
+#   sms-processor           — SMS/RCS backup → markdown organizer (SMS Backup & Restore XML)
 #
 # Shared network: search-infrastructure
 # All services communicate internally; only web UIs are published.
@@ -38,6 +39,8 @@ x-constants:
   # whatsapp: config (Baileys sessions) and data (chats, media exports)
   whatsapp-config: &whatsapp-config /mnt/shuttle/share/app-data/whatsapp/config
   whatsapp-data: &whatsapp-data /mnt/shuttle/share/app-data/whatsapp/data
+  # sms-processor: organized SMS/RCS messages (output indexed by Recoll)
+  sms-data: &sms-data /mnt/shuttle/share/app-data/sms-organized
   alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
   alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
   alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
@@ -114,6 +117,11 @@ services:
       - type: bind
         source: *whatsapp-data
         target: /homes/whatsapp
+        read_only: true
+      # SMS/RCS organized messages (from sms-processor)
+      - type: bind
+        source: *sms-data
+        target: /homes/sms
         read_only: true
     command:
       - recollindex
@@ -365,4 +373,45 @@ services:
       - type: bind
         source: *whatsapp-data
         target: /data
+
+  # ========================================================================
+  # SMS/RCS PROCESSOR — SMS Backup & Restore XML → organized markdown
+  # ========================================================================
+  # Reads XML backup files produced by SMS Backup & Restore (Android app).
+ # Backups land in Google Drive → synced to TrueNAS via rclone/GDrive sync.
+ # Processor parses XML and writes per-contact markdown files organized by
+ # phone number, ready for Recoll full-text search indexing.
+  #
+  # Input:  <google-drive>/SMS-RCS/*.xml  (SMS Backup & Restore exports)
+  # Output: app-data/sms-organized/<user>/<contact>.md
+  # Recoll indexes /homes/sms/ (the output volume mounted read-only).
+  # ========================================================================
+
+  sms-processor:
+    container_name: sms-processor
+    build: ./sms-processor
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    environment:
+      POLL_INTERVAL: ${SMS_POLL_INTERVAL:-300}
+    volumes:
+      # Input — SMS Backup & Restore XML files from Google Drive
+      - type: bind
+        source: *alex-gdrive
+        target: /input
+        read_only: true
+      # Output — organized markdown (persisted across restarts)
+      - type: bind
+        source: *sms-data
+        target: /output
+    # Input is /input/SMS-RCS (Google Drive SMS Backup & Restore folder)
+    # Output is /output (organized markdown files)
+    # Poll interval: ${SMS_POLL_INTERVAL:-300} seconds
+    command: ['python', 'process.py', '/input/SMS-RCS', '/output', '${SMS_POLL_INTERVAL:-300}']
 

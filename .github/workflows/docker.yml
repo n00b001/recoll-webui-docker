@@ -29,6 +29,9 @@ jobs:
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
 
+          - image: sms-processor
+            context: ./sms-processor
+
     steps:
 
       - name: Checkout repository

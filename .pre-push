@@ -1,5 +1,30 @@
 #!/bin/bash
 set -e
-echo "Running tests..."
+
+echo "=== Pre-push: running all checks ==="
+
+# Validate Dockerfiles exist
+for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
+  test -f "$f" || { echo "FAIL: $f not found"; exit 1; }
+done
+echo "[OK] All Dockerfiles present"
+
+# Docker compose config check
+docker compose -f docker-compose.yml config --quiet
+echo "[OK] docker-compose.yml is valid"
+
+# Python tests
+echo "Running recoll_wrapper tests..."
 cd recoll_wrapper && uv run pytest tests/ -v
-echo "Tests passed."
+cd ..
+
+echo "Running sms-processor tests..."
+cd sms-processor && uv run pytest -v
+cd ..
+
+# JavaScript tests
+echo "Running whatsapp-archiver tests..."
+cd whatsapp-archiver && npm test
+cd ..
+
+echo "=== All pre-push checks passed ==="

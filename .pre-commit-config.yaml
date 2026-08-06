@@ -1,18 +1,38 @@
 repos:
   - repo: local
     hooks:
-      - id: ruff-check
-        name: ruff check
-        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix . && cd ../sms-processor && uv run ruff check --fix .'
+      - id: ruff-check-recoll
+        name: ruff check (recoll_wrapper)
+        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix .'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ruff-check-sms
+        name: ruff check (sms-processor)
+        entry: bash -c 'cd sms-processor && uv run ruff check --fix .'
         language: system
         pass_filenames: false
         always_run: true
       - id: ty-check
         name: ty check
-        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src && cd ../sms-processor && uv run ty check .'
+        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src'
         language: system
         pass_filenames: false
         always_run: true
+      - id: dockerfile-check
+        name: validate Dockerfiles exist
+        entry: "bash -c 'for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do test -f \"$f\" || { echo \"FAIL: $f not found\"; exit 1; }; done'"
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: docker-compose-lint
+        name: docker compose config
+        entry: bash -c 'docker compose -f docker-compose.yml config --quiet'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # ---- pre-push hooks ----
       - id: whatsapp-test
         name: whatsapp-archiver tests
         entry: bash -c 'cd whatsapp-archiver && npm test'
