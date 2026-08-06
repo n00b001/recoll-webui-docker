@@ -181,10 +181,10 @@ jobs:
             echo '```'
           } > hadolint-results.md
           # Base64-encode for safe GitHub output passing
-          echo "results=$(base64 -w0 < hadolint-results.md)" >> $GITHUB_OUTPUT
+          echo "results=$(base64 -w0 < hadolint-results.md)" >> "$GITHUB_OUTPUT"
 
       - name: Update Pull Request
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         with:
           script: |
