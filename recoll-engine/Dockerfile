@@ -16,7 +16,7 @@ RUN apt-get update && \
         tesseract-ocr=4.1.1-2.1build1 \
         tesseract-ocr-eng=1:4.00~git30-7274cfa-1.1 \
         libimage-exiftool-perl=12.40+dfsg-1 \
-        ffmpeg=7:4.4.2-0ubuntu0.22.04.2 \
+        ffmpeg=7:4.4.2-0ubuntu0.22.04.1 \
         catdoc=1:0.95-5 \
         antiword=0.37-16 \
         unrtf=0.21.10-clean-1 \
