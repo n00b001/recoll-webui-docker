@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -41,7 +41,7 @@ jobs:
         run: docker compose -f docker-compose.yml config --quiet
 
       - name: Lint — GitHub Actions
-        uses: rhysd/actionlint@v1.7.12
+        uses: rhysd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
         with:
           shell: sh
 
@@ -49,12 +49,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Secret scan — TruffleHog
-        uses: trufflesecurity/trufflehog@v3.96.0
+        uses: trufflesecurity/trufflehog@6f3c981e7b77f235fd2702dd74af25fc4b72bf11 # v3.96.0
         with:
           extra_args: --results=verified,unverified
 
@@ -63,7 +63,7 @@ jobs:
     needs: [lint, secrets]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # ---- Python tests (recoll_wrapper) ----
       - name: Set up uv
@@ -76,7 +76,7 @@ jobs:
 
       # ---- JavaScript tests (whatsapp-archiver) ----
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: npm
@@ -99,11 +99,11 @@ jobs:
     needs: [test]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Lint — Dockerfile
         id: hl-root
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: Dockerfile
           output-file: hadolint-root.txt
@@ -112,7 +112,7 @@ jobs:
 
       - name: Lint — recoll-engine/Dockerfile
         id: hl-engine
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: recoll-engine/Dockerfile
           output-file: hadolint-engine.txt
@@ -121,7 +121,7 @@ jobs:
 
       - name: Lint — recoll-audio-worker/Dockerfile
         id: hl-audio
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: recoll-audio-worker/Dockerfile
           output-file: hadolint-audio.txt
@@ -130,7 +130,7 @@ jobs:
 
       - name: Lint — whatsapp-archiver/Dockerfile
         id: hl-whatsapp
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: whatsapp-archiver/Dockerfile
           output-file: hadolint-whatsapp.txt
@@ -139,7 +139,7 @@ jobs:
 
       - name: Lint — sms-processor/Dockerfile
         id: hl-sms
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: sms-processor/Dockerfile
           output-file: hadolint-sms.txt
@@ -172,19 +172,19 @@ jobs:
           echo "results=$(base64 -w0 < hadolint-results.md)" >> "$GITHUB_OUTPUT"
 
       - name: Update Pull Request
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         if: github.event_name == 'pull_request'
         with:
           script: |
             const encoded = "${{ steps.combine.outputs.results }}";
-            const results = Buffer.from(encoded, 'base64').toString('utf8');
+            const results = Buffer.from(encoded, "base64").toString("utf8");
             const outcome = "${{ job.status }}";
             const output = `#### Hadolint: \`${outcome}\`\n\n${results}`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
+              body: output,
             });
 
       - name: Fail on hadolint findings
