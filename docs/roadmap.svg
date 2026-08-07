@@ -1,0 +1,159 @@
+<!-- @dsCard group="roadmap" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 480" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <style>
+      .check { animation: popIn 0.5s ease-out both; }
+      .spinner { animation: spin 2s linear infinite; transform-origin: center; }
+      @keyframes popIn {
+        0% { opacity: 0; transform: scale(0); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </defs>
+
+  <rect width="850" height="480" fill="url(#bg)" rx="12"/>
+  <text x="425" y="32" font-size="18" fill="#f1f5f9" font-weight="700" text-anchor="middle">Roadmap &amp; Implementation Status</text>
+
+  <!-- Timeline line -->
+  <line x1="60" y1="70" x2="790" y2="70" stroke="#334155" stroke-width="4" stroke-linecap="round"/>
+  <line x1="60" y1="70" x2="450" y2="70" stroke="#10b981" stroke-width="4" stroke-linecap="round"/>
+  <line x1="450" y1="70" x2="550" y2="70" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Phase 1 marker -->
+  <circle cx="160" cy="70" r="12" fill="#10b981"/>
+  <text x="160" y="75" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">✓</text>
+  <text x="160" y="52" font-size="12" fill="#10b981" font-weight="700" text-anchor="middle">PHASE 1</text>
+  <text x="160" y="92" font-size="10" fill="#64748b" text-anchor="middle">Done</text>
+
+  <!-- Phase 2 marker -->
+  <circle cx="450" cy="70" r="12" fill="#f59e0b"/>
+  <g transform="translate(445,65)">
+    <circle cx="5" cy="5" r="5" fill="none" stroke="#fff" stroke-width="2" class="spinner"/>
+  </g>
+  <text x="450" y="52" font-size="12" fill="#f59e0b" font-weight="700" text-anchor="middle">PHASE 2</text>
+  <text x="450" y="92" font-size="10" fill="#64748b" text-anchor="middle">In Progress</text>
+
+  <!-- Phase 3 marker -->
+  <circle cx="680" cy="70" r="12" fill="#475569"/>
+  <text x="680" y="75" font-size="10" fill="#94a3b8" text-anchor="middle" font-weight="700">3</text>
+  <text x="680" y="52" font-size="12" fill="#94a3b8" font-weight="700" text-anchor="middle">PHASE 3</text>
+  <text x="680" y="92" font-size="10" fill="#64748b" text-anchor="middle">Planned</text>
+
+  <!-- Phase 4 marker -->
+  <circle cx="790" cy="70" r="12" fill="#334155"/>
+  <text x="790" y="75" font-size="10" fill="#64748b" text-anchor="middle" font-weight="700">4</text>
+  <text x="790" y="52" font-size="12" fill="#64748b" font-weight="700" text-anchor="middle">PHASE 4</text>
+  <text x="790" y="92" font-size="10" fill="#64748b" text-anchor="middle">Future</text>
+
+  <!-- ===== PHASE 1 ITEMS ===== -->
+  <rect x="60" y="120" width="360" height="150" rx="8" fill="#022c22" stroke="#10b981" stroke-width="1" opacity="0.8"/>
+  <text x="80" y="144" font-size="13" fill="#34d399" font-weight="700">✅ Phase 1 — Documents, Images &amp; Email</text>
+
+  <rect x="80" y="158" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="168" font-size="11" fill="#d1d5db">Recoll indexing (PDF, DOCX, ODT, XLSX, PPTX)</text>
+
+  <rect x="80" y="178" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="188" font-size="11" fill="#d1d5db">Image metadata extraction (EXIF, IPTC, XMP via exiftool)</text>
+
+  <rect x="80" y="198" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="208" font-size="11" fill="#d1d5db">OCR for scanned PDFs (Tesseract English)</text>
+
+  <rect x="80" y="218" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="228" font-size="11" fill="#d1d5db">Recoll WebUI (bottle-based HTTP interface)</text>
+
+  <rect x="80" y="238" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="248" font-size="11" fill="#d1d5db">Immich integration (photos, videos, ML tags)</text>
+
+  <rect x="80" y="258" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="268" font-size="11" fill="#d1d5db">Email sync (mbsync IMAP → Maildir)</text>
+
+  <!-- ===== PHASE 2 ITEMS ===== -->
+  <rect x="440" y="120" width="180" height="150" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1" opacity="0.8"/>
+  <text x="460" y="144" font-size="13" fill="#fbbf24" font-weight="700">🎙 Phase 2 — Audio</text>
+
+  <rect x="460" y="158" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="476" y="168" font-size="11" fill="#9ca3af">Whisper transcription pipeline</text>
+
+  <rect x="460" y="178" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="476" y="188" font-size="11" fill="#9ca3af">Audio worker integration</text>
+
+  <rect x="460" y="198" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="476" y="208" font-size="11" fill="#9ca3af">Transcripts indexed by Recoll</text>
+
+  <rect x="460" y="218" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="476" y="228" font-size="11" fill="#9ca3af">Multi-language support</text>
+
+  <rect x="460" y="238" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="476" y="248" font-size="11" fill="#9ca3af">Speaker diarization</text>
+
+  <!-- ===== PHASE 3 ITEMS ===== -->
+  <rect x="640" y="120" width="190" height="150" rx="8" fill="#172554" stroke="#6366f1" stroke-width="1" opacity="0.8"/>
+  <text x="660" y="144" font-size="13" fill="#818cf8" font-weight="700">🔮 Phase 3 — Unified UI</text>
+
+  <rect x="660" y="158" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="676" y="168" font-size="11" fill="#6b7280">Single search box across all backends</text>
+
+  <rect x="660" y="178" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="676" y="188" font-size="11" fill="#6b7280">WhatsApp message search</text>
+
+  <rect x="660" y="198" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="676" y="208" font-size="11" fill="#6b7280">SMS message search</text>
+
+  <rect x="660" y="218" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="676" y="228" font-size="11" fill="#6b7280">Semantic search (CLIP embeddings)</text>
+
+  <rect x="660" y="238" width="10" height="10" rx="2" fill="#475569"/>
+  <text x="676" y="248" font-size="11" fill="#6b7280">Cross-source result ranking</text>
+
+  <!-- ===== WHAT'S ALREADY DONE (beyond Phase 1) ===== -->
+  <rect x="60" y="295" width="360" height="160" rx="8" fill="#042336" stroke="#0ea5e9" stroke-width="1" opacity="0.8"/>
+  <text x="80" y="319" font-size="13" fill="#38bdf8" font-weight="700">✅ Also Done — Messages</text>
+
+  <rect x="80" y="333" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="343" font-size="11" fill="#d1d5db">WhatsApp Archiver (Baileys multi-device client)</text>
+
+  <rect x="80" y="353" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="363" font-size="11" fill="#d1d5db">Continuous message export to plain-text</text>
+
+  <rect x="80" y="373" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="383" font-size="11" fill="#d1d5db">Media download (images, audio, video, docs)</text>
+
+  <rect x="80" y="393" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="403" font-size="11" fill="#d1d5db">Multi-account support with session persistence</text>
+
+  <rect x="80" y="413" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="423" font-size="11" fill="#d1d5db">Exponential backoff with jitter on reconnect</text>
+
+  <rect x="80" y="433" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="96" y="443" font-size="11" fill="#d1d5db">Non-root container (security hardening)</text>
+
+  <!-- ===== HARDENING ===== -->
+  <rect x="440" y="295" width="390" height="160" rx="8" fill="#1a1a2e" stroke="#8b5cf6" stroke-width="1" opacity="0.8"/>
+  <text x="460" y="319" font-size="13" fill="#a78bfa" font-weight="700">🔒 Hardening Applied</text>
+
+  <rect x="460" y="333" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="476" y="343" font-size="11" fill="#d1d5db">Exit code bug fixed (recollindex.py)</text>
+
+  <rect x="460" y="353" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="476" y="363" font-size="11" fill="#d1d5db">.dockerignore files for all services</text>
+
+  <rect x="460" y="373" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="476" y="383" font-size="11" fill="#d1d5db">LibreOffice temp dir sticky bit (chmod 1777)</text>
+
+  <rect x="460" y="393" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="476" y="403" font-size="11" fill="#d1d5db">mbsync password security (no process exposure)</text>
+
+  <rect x="460" y="413" width="10" height="10" rx="2" fill="#10b981"/>
+  <text x="476" y="423" font-size="11" fill="#d1d5db">Paths parameterized via environment variables</text>
+
+  <rect x="460" y="433" width="10" height="10" rx="2" fill="#f59e0b"/>
+  <text x="476" y="443" font-size="11" fill="#fbbf24">Remaining: WebUI auth, recoll non-root, Python 3</text>
+</svg>

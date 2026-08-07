@@ -1,0 +1,170 @@
+<!-- @dsCard group="data-flow" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="'Segoe UI', system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="srcGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="procGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="idxGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .data1 { animation: moveData 4s linear infinite; }
+      .data2 { animation: moveData 4s linear infinite 0.8s; }
+      .data3 { animation: moveData 4s linear infinite 1.6s; }
+      .data4 { animation: moveData 4s linear infinite 2.4s; }
+      @keyframes moveData {
+        0% { stroke-dashoffset: 30; opacity: 0.4; }
+        50% { opacity: 1; }
+        100% { stroke-dashoffset: 0; opacity: 0.4; }
+      }
+      .box-label { font-size: 13px; fill: #f1f5f9; font-weight: 700; text-anchor: middle; }
+      .box-sub { font-size: 10px; fill: #cbd5e1; text-anchor: middle; }
+      .arrow-label { font-size: 9px; fill: #94a3b8; text-anchor: middle; font-style: italic; }
+    </style>
+  </defs>
+
+  <rect width="900" height="620" fill="url(#bg)" rx="12"/>
+  <text x="450" y="32" font-size="18" fill="#f1f5f9" font-weight="700" text-anchor="middle">Data Flow Pipeline</text>
+  <text x="450" y="50" font-size="11" fill="#64748b" text-anchor="middle">How data moves from external sources through processing to searchable indexes</text>
+
+  <!-- ===== ROW 1: EXTERNAL SOURCES ===== -->
+  <text x="45" y="90" font-size="10" fill="#60a5fa" font-weight="700" letter-spacing="1">EXTERNAL SOURCES</text>
+
+  <!-- IMAP Server -->
+  <rect x="40" y="100" width="130" height="55" rx="8" fill="url(#srcGrad)" stroke="#3b82f6" stroke-width="1"/>
+  <text x="105" y="124" class="box-label">📮 IMAP Server</text>
+  <text x="105" y="140" class="box-sub">Outlook.com</text>
+
+  <!-- Google Drive / Photos -->
+  <rect x="190" y="100" width="130" height="55" rx="8" fill="url(#srcGrad)" stroke="#3b82f6" stroke-width="1"/>
+  <text x="255" y="124" class="box-label">📁 Google Drive</text>
+  <text x="255" y="140" class="box-sub">Docs · Photos</text>
+
+  <!-- WhatsApp -->
+  <rect x="340" y="100" width="130" height="55" rx="8" fill="url(#srcGrad)" stroke="#3b82f6" stroke-width="1"/>
+  <text x="405" y="124" class="box-label">💬 WhatsApp</text>
+  <text x="405" y="140" class="box-sub">Web API (MD)</text>
+
+  <!-- SMS Backup -->
+  <rect x="490" y="100" width="130" height="55" rx="8" fill="url(#srcGrad)" stroke="#3b82f6" stroke-width="1"/>
+  <text x="555" y="124" class="box-label">📱 SMS Backup</text>
+  <text x="555" y="140" class="box-sub">XML Export</text>
+
+  <!-- Phone Audio -->
+  <rect x="640" y="100" width="130" height="55" rx="8" fill="url(#srcGrad)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="705" y="124" font-size="12" fill="#fbbf24" font-weight="700" text-anchor="middle">🎙 Audio Files</text>
+  <text x="705" y="140" class="box-sub">MP3 · M4A · FLAC</text>
+
+  <!-- ===== ARROWS ROW 1 → ROW 2 ===== -->
+  <line x1="105" y1="158" x2="105" y2="220" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8,4" class="data1"/>
+  <text x="125" y="195" class="arrow-label">poll sync</text>
+
+  <line x1="255" y1="158" x2="255" y2="220" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8,4" class="data2"/>
+  <text x="275" y="195" class="arrow-label">mount</text>
+
+  <line x1="405" y1="158" x2="405" y2="220" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8,4" class="data3"/>
+  <text x="425" y="195" class="arrow-label">scrape</text>
+
+  <line x1="555" y1="158" x2="555" y2="220" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8,4" class="data4"/>
+  <text x="575" y="195" class="arrow-label">parse</text>
+
+  <line x1="705" y1="158" x2="705" y2="220" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3" class="data1" opacity="0.5"/>
+  <text x="725" y="195" class="arrow-label">pending</text>
+
+  <!-- ===== ROW 2: PROCESSING SERVICES ===== -->
+  <text x="45" y="238" font-size="10" fill="#a78bfa" font-weight="700" letter-spacing="1">PROCESSING SERVICES</text>
+
+  <!-- mbsync -->
+  <rect x="40" y="248" width="130" height="65" rx="8" fill="url(#procGrad)" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="105" y="272" class="box-label">mbsync</text>
+  <text x="105" y="288" class="box-sub">IMAP → Maildir</text>
+  <text x="105" y="302" class="box-sub">stefanbuck/m-sync</text>
+
+  <!-- Recoll Engine -->
+  <rect x="190" y="248" width="130" height="65" rx="8" fill="url(#procGrad)" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="255" y="272" class="box-label">Recoll Engine</text>
+  <text x="255" y="288" class="box-sub">Index · OCR · EXIF</text>
+  <text x="255" y="302" class="box-sub">custom Docker image</text>
+
+  <!-- WhatsApp Archiver -->
+  <rect x="340" y="248" width="130" height="65" rx="8" fill="url(#procGrad)" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="405" y="272" class="box-label">WA Archiver</text>
+  <text x="405" y="288" class="box-sub">messages → .txt</text>
+  <text x="405" y="302" class="box-sub">@whiskeysockets/baileys</text>
+
+  <!-- SMS Processor -->
+  <rect x="490" y="248" width="130" height="65" rx="8" fill="url(#procGrad)" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="555" y="272" class="box-label">SMS Processor</text>
+  <text x="555" y="288" class="box-sub">XML → Markdown</text>
+  <text x="555" y="302" class="box-sub">per-contact .md files</text>
+
+  <!-- Audio Worker -->
+  <rect x="640" y="248" width="130" height="65" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="705" y="272" font-size="12" fill="#fbbf24" font-weight="700" text-anchor="middle">Audio Worker</text>
+  <text x="705" y="288" class="box-sub">Whisper → .txt</text>
+  <text x="705" y="302" class="box-sub">(not yet integrated)</text>
+
+  <!-- ===== ARROWS ROW 2 → ROW 3 ===== -->
+  <line x1="105" y1="316" x2="200" y2="380" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" class="data1"/>
+  <text x="175" y="355" class="arrow-label">maildir</text>
+
+  <line x1="255" y1="316" x2="255" y2="380" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" class="data2"/>
+
+  <line x1="405" y1="316" x2="350" y2="380" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" class="data3"/>
+  <text x="395" y="355" class="arrow-label">.txt files</text>
+
+  <line x1="555" y1="316" x2="460" y2="380" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" class="data4"/>
+  <text x="525" y="355" class="arrow-label">.md files</text>
+
+  <!-- ===== ROW 3: INDEXING ===== -->
+  <text x="45" y="398" font-size="10" fill="#34d399" font-weight="700" letter-spacing="1">INDEXING &amp; STORAGE</text>
+
+  <rect x="140" y="410" width="280" height="55" rx="8" fill="url(#idxGrad)" stroke="#10b981" stroke-width="1"/>
+  <text x="280" y="434" class="box-label">🔍 Recoll Index (xapian)</text>
+  <text x="280" y="452" class="box-sub">Full-text index · documents · maildir · chat exports · sms markdown</text>
+
+  <rect x="460" y="410" width="160" height="55" rx="8" fill="url(#idxGrad)" stroke="#10b981" stroke-width="1"/>
+  <text x="540" y="434" class="box-label">🗄 Immich DB</text>
+  <text x="540" y="452" class="box-sub">PostgreSQL · ML models</text>
+
+  <!-- ===== ARROWS ROW 3 → ROW 4 ===== -->
+  <line x1="280" y1="468" x2="280" y2="520" stroke="#10b981" stroke-width="2" stroke-dasharray="6,4" class="data1"/>
+  <line x1="540" y1="468" x2="540" y2="520" stroke="#10b981" stroke-width="2" stroke-dasharray="6,4" class="data2"/>
+
+  <!-- ===== ROW 4: WEB UIs ===== -->
+  <text x="45" y="538" font-size="10" fill="#60a5fa" font-weight="700" letter-spacing="1">WEB UIs</text>
+
+  <rect x="180" y="548" width="200" height="45" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="280" y="574" class="box-label">Recoll WebUI — :9080</text>
+
+  <rect x="440" y="548" width="200" height="45" rx="8" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="540" y="574" class="box-label">Immich UI — :2283</text>
+
+  <!-- Animated particles -->
+  <circle r="4" fill="#60a5fa" filter="url(#glow)">
+    <animateMotion dur="4s" repeatCount="indefinite" path="M105,158 L105,220"/>
+  </circle>
+  <circle r="4" fill="#a78bfa" filter="url(#glow)">
+    <animateMotion dur="4s" begin="0.8s" repeatCount="indefinite" path="M255,158 L255,220"/>
+  </circle>
+  <circle r="4" fill="#34d399" filter="url(#glow)">
+    <animateMotion dur="4s" begin="1.6s" repeatCount="indefinite" path="M405,158 L405,220"/>
+  </circle>
+  <circle r="4" fill="#fbbf24" filter="url(#glow)">
+    <animateMotion dur="4s" begin="2.4s" repeatCount="indefinite" path="M555,158 L555,220"/>
+  </circle>
+</svg>
