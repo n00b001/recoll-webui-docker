@@ -1,0 +1,12 @@
+[project]
+name = "recoll-audio-worker"
+version = "0.1.0"
+description = "Audio/video transcription worker using whisper.cpp for Recoll search indexing"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.16.1",
+]

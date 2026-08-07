@@ -1,7 +1,7 @@
 # =============================================================================
 # mbsync Configuration — IMAP → Maildir Sync
 # =============================================================================
-# Mounted to /home/msync/.mfilter.d/mbsyncrc in the container.
+# Mounted to /home/msync/.isync/mbsyncrc in the container.
 #
 # Each "IMAPAccount" block defines one mailbox to sync.
 # Edit credentials below and set environment variables in .env.
@@ -18,7 +18,7 @@ IMAPAccount alex-imap
     Port 993
     Proto IMAP
     User ${ALEX_IMAP_USER}
-    PassCmd "echo $ALEX_IMAP_PASS"
+    Password "$ALEX_IMAP_PASS"
     SSLType IMAPS
     SlaveType Maildir
     SyncState *
@@ -48,7 +48,7 @@ Channel alex-channel
 #     Port 993
 #     Proto IMAP
 #     User ${CHLOE_IMAP_USER}
-#     PassCmd "echo $CHLOE_IMAP_PASS"
+#     Password "$CHLOE_IMAP_PASS"
 #     SSLType IMAPS
 #     SlaveType Maildir
 #     SyncState *

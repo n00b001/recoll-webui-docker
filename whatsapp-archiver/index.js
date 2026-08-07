@@ -38,6 +38,12 @@ import {
 } from './lib.js'
 
 // ---------------------------------------------------------------------------
+// Reconnect state (module-scoped, not global)
+// ---------------------------------------------------------------------------
+let reconnectAttempts = 0
+const MAX_RETRY_DELAY = 300000  // 5 min cap
+
+// ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 const CONFIG_DIR = process.env.CONFIG_DIR || '/config'
@@ -166,13 +172,17 @@ async function main() {
         `reconnecting: ${shouldReconnect}`
       )
       if (shouldReconnect) {
-        console.log('[archiver] reconnecting in 5s...')
-        setTimeout(main, 5000)
+        const baseDelay = Math.min(5000 * Math.pow(2, reconnectAttempts), MAX_RETRY_DELAY)
+        const jitter = Math.random() * 1000
+        reconnectAttempts++
+        console.log(`[archiver] reconnecting in ${Math.round((baseDelay + jitter) / 1000)}s (attempt ${reconnectAttempts})...`)
+        setTimeout(main, baseDelay + jitter)
       } else {
         console.log('[archiver] logged out. Clear session dir and re-scan to restart.')
         process.exit(1)
       }
     } else if (connection === 'open') {
+      reconnectAttempts = 0
       console.log('[archiver] connected and listening for messages...')
     }
   })

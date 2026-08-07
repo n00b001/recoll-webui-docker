@@ -27,7 +27,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
-    && chmod 777 /tmp/libreoffice
+    && chmod 1777 /tmp/libreoffice
 
 WORKDIR /data
 

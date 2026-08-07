@@ -9,7 +9,7 @@ FROM node:20-slim
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
-COPY index.js ./
+COPY *.js ./
 
 # Run as non-root (node:20-slim provides a 'node' user at UID 1000)
 RUN chown -R node:node /app

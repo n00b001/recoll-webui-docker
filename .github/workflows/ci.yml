@@ -28,12 +28,15 @@ jobs:
       - name: Lint — ruff (sms-processor)
         run: cd sms-processor && uv run ruff check .
 
+      - name: Lint — ruff (recoll-audio-worker)
+        run: cd recoll-audio-worker && uv run ruff check .
+
       - name: Type check — ty
         run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
 
       - name: Validate Dockerfiles exist
         run: |
-          for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
+          for f in Dockerfile recoll-engine/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
             test -f "$f" || { echo "FAIL: $f not found"; exit 1; }
           done
 
@@ -94,6 +97,10 @@ jobs:
       - name: SMS processor — tests
         run: cd sms-processor && uv run pytest -v
 
+      # ---- Python tests (recoll-audio-worker) ----
+      - name: Audio worker — tests
+        run: cd recoll-audio-worker && uv run pytest -v
+
   hadolint:
     runs-on: ubuntu-latest
     needs: [test]
@@ -106,6 +113,7 @@ jobs:
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: Dockerfile
+          args: --config .hadolint
           output-file: hadolint-root.txt
           no-color: true
           no-fail: true
@@ -115,16 +123,8 @@ jobs:
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: recoll-engine/Dockerfile
+          args: --config .hadolint
           output-file: hadolint-engine.txt
-          no-color: true
-          no-fail: true
-
-      - name: Lint — recoll-audio-worker/Dockerfile
-        id: hl-audio
-        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
-        with:
-          dockerfile: recoll-audio-worker/Dockerfile
-          output-file: hadolint-audio.txt
           no-color: true
           no-fail: true
 
@@ -133,6 +133,7 @@ jobs:
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: whatsapp-archiver/Dockerfile
+          args: --config .hadolint
           output-file: hadolint-whatsapp.txt
           no-color: true
           no-fail: true
@@ -142,7 +143,18 @@ jobs:
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
           dockerfile: sms-processor/Dockerfile
+          args: --config .hadolint
           output-file: hadolint-sms.txt
+          no-color: true
+          no-fail: true
+
+      - name: Lint — recoll-audio-worker/Dockerfile
+        id: hl-audio
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: recoll-audio-worker/Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-audio.txt
           no-color: true
           no-fail: true
 
@@ -165,9 +177,9 @@ jobs:
           {
             show_result "Dockerfile" hadolint-root.txt
             show_result "recoll-engine/Dockerfile" hadolint-engine.txt
-            show_result "recoll-audio-worker/Dockerfile" hadolint-audio.txt
             show_result "whatsapp-archiver/Dockerfile" hadolint-whatsapp.txt
             show_result "sms-processor/Dockerfile" hadolint-sms.txt
+            show_result "recoll-audio-worker/Dockerfile" hadolint-audio.txt
           } > hadolint-results.md
           echo "results=$(base64 -w0 < hadolint-results.md)" >> "$GITHUB_OUTPUT"
 
@@ -191,7 +203,7 @@ jobs:
         if: |
           steps.hl-root.outcome == 'failure' ||
           steps.hl-engine.outcome == 'failure' ||
-          steps.hl-audio.outcome == 'failure' ||
           steps.hl-whatsapp.outcome == 'failure' ||
-          steps.hl-sms.outcome == 'failure'
+          steps.hl-sms.outcome == 'failure' ||
+          steps.hl-audio.outcome == 'failure'
         run: echo "hadolint found issues" && exit 1
