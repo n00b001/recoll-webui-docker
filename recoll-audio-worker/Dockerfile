@@ -10,16 +10,17 @@ FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime + build dependencies
+# hadolint ignore=DL3003
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl=7.88.1-10+deb12u15 \
     ffmpeg=7:5.1.9-0+deb12u1 \
     python3-minimal=3.11.2-1+b1 \
     tini=0.19.0-1+b3 \
     && ( apt-get install -y --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        git \
-        cmake \
+        build-essential=12.9 \
+        ca-certificates=20230311+deb12u1 \
+        git=1:2.39.5-0+deb12u3 \
+        cmake=3.25.1-1 \
         && cd /tmp \
         && git clone https://github.com/ggml-org/whisper.cpp.git \
         && cd whisper.cpp \
@@ -35,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         -DWHISPER_CLBLAST=OFF \
         -DWHISPER_VULKAN=OFF \
         -DWHISPER_VULKAN=OFF \
-        && make -j$(nproc) \
+        && make -j"$(nproc)" \
         && cp bin/main /usr/local/bin/whisper \
         && cd /tmp \
         && rm -rf /tmp/whisper.cpp \
