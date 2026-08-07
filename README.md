@@ -1,43 +1,83 @@
 # Unified Search Infrastructure
 
-One-stop search for your entire digital life — documents, photos, emails, audio, messages.
-
-## Vision
-
-A single beautiful UI that instantly searches across all your data sources:
-
-| Source | Content | Status |
-|--------|---------|--------|
-| **Recoll** | Documents (PDF, DOCX, ODT), images (EXIF), scanned docs (OCR) | Phase 1: Docs + Images ✅ |
-| **Recoll Audio** | Audio transcription (Whisper) | Phase 2: In progress |
-| **Immich** | Photos/videos with ML search (CLIP, face recognition) | Integrated |
-| **MailArchiver** | Email search | Integrated |
-| **WhatsApp** | Message history | Future |
-| **SMS** | Text messages | Future |
+One-stop search for your entire digital life — documents, photos, emails, audio, and messages.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Future Unified UI                        │
-│  (single search box → queries all backends simultaneously)  │
-└───────────────┬───────────────┬───────────────┬─────────────┘
-                │               │               │
-        ┌───────▼──────┐  ┌────▼──────┐  ┌────▼───────┐
-        │    Recoll     │  │  Immich   │  │   Mail     │
-        │  (port 9080)  │  │(port 2283)│  │ Archiver   │
-        │               │  │           │  │(port 30315)│
-        │  Documents    │  │  Photos   │  │  Emails    │
-        │  Images + OCR │  │  Videos   │  │            │
-        │  Audio (TBD)  │  │  ML Tags  │  │            │
-        └───────┬───────┘  └────┬──────┘  └────┬────────┘
-                │               │               │
-        ┌───────▼───────────────▼───────────────▼──────────┐
-        │              TrueNAS Filesystem                   │
-        │  /mnt/shuttle/share/{syncthing,alex-home,chloe-   │
-        │    home,app-data}                                 │
-        └──────────────────────────────────────────────────┘
-```
+![Architecture](docs/architecture.svg)
+
+A Dockerized homelab stack that indexes all personal data into searchable stores:
+
+| Service | Status | What It Does |
+|---------|--------|-------------|
+| **Recoll Engine** | ✅ Running | Full-text index for documents (PDF, DOCX, ODT), images (EXIF/IPTC/XMP via exiftool), scanned PDFs (Tesseract OCR), and email (Maildir) |
+| **Recoll WebUI** | ✅ Running | Bottle-based web search interface (port 9080) |
+| **Immich** | ✅ Running | Photo/video library with ML-powered face recognition and CLIP tags (port 2283) |
+| **Email (mbsync)** | ✅ Running | IMAP → Maildir sync every 5 minutes (no web UI) |
+| **WhatsApp Archiver** | ✅ Running | Baileys multi-device client that continuously exports chats to plaintext and downloads media |
+| **SMS Processor** | ✅ Running | Parses SMS Backup & Restore XML exports into per-contact markdown files |
+| **Audio Worker** | 🟡 WIP | faster-whisper container ready; transcription pipeline and Recoll integration pending |
+
+## Data Flow
+
+![Data Flow](docs/data-flow.svg)
+
+Each service follows the same pattern: **source → processor → indexed output → search**.
+
+- **Email**: IMAP → mbsync → Maildir → Recoll index
+- **Documents**: Google Drive/Syncthing mount → Recoll (OCR + metadata extraction) → xapian index
+- **Photos/Videos**: Google Photos mount → Immich (PostgreSQL + ML) → Immich UI
+- **WhatsApp**: WhatsApp Web API → Baileys archiver → `.txt` chat files + media → Recoll index
+- **SMS**: SMS Backup & Restore XML → Python processor → per-contact `.md` → Recoll index
+- **Audio** (planned): Audio files → ffmpeg normalize → Whisper transcription → `.txt` → Recoll index
+
+## Roadmap
+
+![Roadmap](docs/roadmap.svg)
+
+### Phase 1 ✅ — Documents, Images & Email
+- [x] Recoll indexing for documents (PDF, DOCX, ODT, XLSX, PPTX, TXT, RTF, EPUB)
+- [x] Image metadata extraction (EXIF, IPTC, XMP via exiftool)
+- [x] OCR for scanned PDFs (Tesseract English)
+- [x] Recoll WebUI
+- [x] Immich integration (photos, videos, ML tags, face recognition)
+- [x] Email sync (mbsync IMAP → Maildir every 5 minutes)
+
+### Messages ✅ — WhatsApp & SMS
+- [x] WhatsApp Archiver (Baileys multi-device client)
+- [x] Continuous message export to plain-text (one file per contact)
+- [x] Media download (images, audio, video, documents in dated folders)
+- [x] Multi-account support with session persistence
+- [x] Exponential backoff with jitter on reconnect
+- [x] Non-root container
+- [x] SMS Processor (XML backup → per-contact markdown)
+- [x] State tracking (`processed.json`) to avoid reprocessing
+
+### Phase 2 🟡 — Audio
+- [ ] Whisper transcription pipeline (faster-whisper container ready)
+- [ ] Audio worker integration with Recoll indexing
+- [ ] Transcribed text indexed by Recoll
+- [ ] Multi-language support
+- [ ] Speaker diarization
+
+### Phase 3 🔮 — Unified UI
+- [ ] Single search box querying all backends simultaneously
+- [ ] WhatsApp message search (data is ready, needs UI integration)
+- [ ] SMS message search (data is ready, needs UI integration)
+- [ ] Semantic search across all sources (CLIP embeddings)
+- [ ] Cross-source result ranking
+
+### Hardening 🔒
+- [x] Exit code bug fixed (`recollindex.py`)
+- [x] `.dockerignore` files for all services
+- [x] LibreOffice temp dir sticky bit
+- [x] mbsync password security (no process exposure)
+- [x] Paths parameterized via environment variables
+- [x] WhatsApp exponential backoff
+- [x] WhatsApp non-root container
+- [ ] WebUI authentication (`httpPassword` in recoll.conf)
+- [ ] Recoll-engine non-root migration
+- [ ] Python 3 / Ubuntu 24.04 migration (Recoll WebUI uses Python 2 + bottle 0.10)
 
 ## Quick Start
 
@@ -60,9 +100,9 @@ docker compose ps
 
 | Service | Port | URL | Purpose |
 |---------|------|-----|---------|
-| recoll-webui | 9080 | http://localhost:9080 | Document/image search |
+| recoll-webui | 9080 | http://localhost:9080 | Document/image/email search |
 | immich-server | 2283 | http://localhost:2283 | Photo/video library |
-| mail-archiver | 30315 | http://localhost:30315 | Email archive |
+| mbsync | (none) | — | Background IMAP → Maildir sync (no web UI)
 
 ## Data Layout
 
@@ -78,12 +118,18 @@ docker compose ps
 | syncthing/chloe-phone | /homes/chloe/phone | Chloe's phone backup |
 | chloe-home/google-drive | /homes/chloe/gdrive | Chloe's Google Drive |
 | chloe-home/google-photos | /homes/chloe/gphotos | Chloe's Google Photos |
+| whatsapp/data | /data (whatsapp-archiver) | WhatsApp chat exports + media |
+| sms/input | /input (sms-processor) | SMS Backup & Restore XML files |
+| sms/output | /output (sms-processor) | Organized markdown output |
 
 ### Index storage
 
 - Recoll index: `/mnt/shuttle/share/app-data/recoll`
 - Immich data: `/mnt/shuttle/share/app-data/immich`
-- MailArchiver data: `/mnt/shuttle/share/app-data/mail-archiver`
+- mbsync config: `/mnt/shuttle/share/app-data/mbsync/config`
+- mbsync Maildir: `/mnt/shuttle/share/app-data/mbsync/data`
+- WhatsApp config: `/mnt/shuttle/share/app-data/whatsapp/config`
+- WhatsApp exports: `/mnt/shuttle/share/app-data/whatsapp/data`
 
 ## Configuration
 
@@ -93,38 +139,81 @@ Recoll is configured via [`recoll.conf`](recoll.conf). It covers:
 - **Audio**: MP3, M4A, OGG, FLAC — metadata via ffmpeg (transcription coming in Phase 2)
 - **OCR**: Tesseract English for scanned PDFs
 
-## Roadmap
+### Environment variables
 
-### Phase 1 ✅ — Documents + Images
-- [x] Recoll indexing for documents
-- [x] EXIF extraction for images
-- [x] OCR for scanned PDFs
-- [x] Google Photos mounted
+Path constants are defined as YAML anchors in `docker-compose.yml` (`x-constants`). Edit once, reuse everywhere via `*alias`.
 
-### Phase 2 — Audio
-- [ ] Whisper transcription pipeline
-- [ ] Audio worker integration
-- [ ] Transcribed text indexed by Recoll
-
-### Phase 3 — Unified UI
-- [ ] Single search box querying all backends
-- [ ] WhatsApp message import
-- [ ] SMS import
-- [ ] Semantic search across all sources
+The Python wrapper respects `RECOLL_BASE_PATH` (default: `/mnt/shuttle/share`).
 
 ## Directory Structure
 
 ```
 .
-├── docker-compose.yml      # Unified compose (Recoll + Immich + MailArchiver)
-├── recoll.conf             # Recoll indexing configuration
-├── .env.example            # Environment variable template
-├── recoll-engine/          # Recoll indexer container image
-├── recoll-webui/           # Recoll web interface source
-├── recoll-audio-worker/    # Audio transcription worker
-└── recoll_wrapper/         # Python wrapper for Recoll indexing
+├── docker-compose.yml           # Unified compose (all services)
+├── .env.example                 # Environment variable template
+├── .pre-commit-config.yaml      # Pre-commit lint + pre-push Docker builds
+├── recoll.conf                  # Recoll indexing configuration
+├── Dockerfile                   # Recoll WebUI container
+├── docs/                        # Animated SVG diagrams
+│   ├── architecture.svg         # System architecture
+│   ├── data-flow.svg            # Data pipeline flow
+│   └── roadmap.svg              # Implementation roadmap
+├── mbsync/
+│   └── mbsyncrc                 # IMAP → Maildir sync configuration
+├── recoll-engine/
+│   ├── Dockerfile               # Recoll indexer (ubuntu 22.04 + recoll)
+│   └── README.md
+├── recoll-webui/                # Recoll web interface source (bottle)
+├── recoll-audio-worker/
+│   ├── Dockerfile               # faster-whisper transcription container
+│   └── README.md
+├── recoll_wrapper/              # Python wrapper for Recoll indexing
+│   ├── pyproject.toml
+│   └── recollindex.py           # Index orchestrator with progress bars
+├── sms-processor/
+│   ├── Dockerfile
+│   ├── process.py               # XML → markdown processor
+│   └── pyproject.toml
+└── whatsapp-archiver/
+    ├── Dockerfile               # node:20-slim, non-root
+    ├── index.js                 # Baileys archiver entry point
+    ├── lib.js                   # Archiver utilities
+    └── README.md
 ```
+
+## Service Details
+
+### WhatsApp Archiver
+
+Connects as a WhatsApp Web multi-device client via [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys). Messages are appended to per-contact `.txt` files; media is downloaded to dated folders. Session persists across restarts so you only scan the QR code once.
+
+See [whatsapp-archiver/README.md](whatsapp-archiver/README.md) for multi-account setup.
+
+### SMS Processor
+
+Reads SMS Backup & Restore XML files from a mounted input directory and produces per-contact markdown files. Tracks processed files in `processed.json` so restarts don't reprocess everything. Runs on a configurable poll interval.
+
+### Recoll Engine
+
+Custom Ubuntu 22.04 container with Recoll, poppler-utils (PDF text extraction), Tesseract OCR, exiftool, and LibreOffice (document conversion). Indexes all mounted data directories. Controlled by `recoll_wrapper/recollindex.py` for incremental reindexing with progress bars.
+
+### Immich
+
+Self-hosted photo/video management. Uses PostgreSQL + Redis. ML backend handles face recognition and CLIP-based semantic search.
+
+## CI / CD
+
+GitHub Actions workflow (`.github/workflows/ci.yml`):
+1. **Lint**: Ruff, shellcheck, hadolint, yamllint
+2. **Test**: pytest for recoll_wrapper
+3. **Docker build**: Build all images on PR ( gated on CI passing)
+
+Pre-commit hooks run linting; pre-push hooks parallelize Docker builds.
+
+## Solutions & Known Issues
+
+See [SOLUTIONS.md](SOLUTIONS.md) for the full adversarial review of 19 findings, including accepted fixes, rejected items, and phased implementation plans.
 
 ## TrueNAS Notes
 
-This compose file is cleaned up from TrueNAS app exports. Standard Docker users can run it directly. TrueNAS-specific init containers (permissions, postgres_upgrade) are removed — set ownership on the host instead.
+This compose file originated from TrueNAS app exports. Standard Docker users can run it directly. TrueNAS-specific init containers (permissions, postgres_upgrade) are removed — set ownership on the host instead.
