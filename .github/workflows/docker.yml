@@ -1,8 +1,10 @@
 name: Build and publish Docker images
 
 on:
-  pull_request:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches:
       - main
 
@@ -13,6 +15,7 @@ permissions:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
 
     strategy:
       # Don't cancel sibling jobs when one runner fails.
@@ -27,9 +30,6 @@ jobs:
           - image: recoll-engine
             context: ./recoll-engine
 
-          - image: recoll-audio-worker
-            context: ./recoll-audio-worker
-
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
 
@@ -37,41 +37,54 @@ jobs:
             context: ./sms-processor
 
     steps:
+      - name: Determine commit SHA
+        id: sha
+        run: |
+          # workflow_run gives us the head_sha of the PR or the commit that triggered CI
+          sha="${{ github.event.workflow_run.head_sha }}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(echo ${sha} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
 
       - name: Create buildx builder (required for GHA cache)
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        if: github.event_name == 'push'
+        if: github.event.workflow_run.event == 'push'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # =====================
-      # PR: validate build only
+      # PR (after CI): validate build only
       # =====================
       - name: Build image (PR validation)
-        if: github.event_name == 'pull_request'
+        if: github.event.workflow_run.event == 'pull_request'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
           push: false
-          cache-from: type=gha,scope=${{ matrix.image }}-pr-${{ github.event.pull_request.number }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha,scope=${{ matrix.image }}-pr
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-pr
 
       # =====================
-      # Main: build + publish
+      # Push to main (after CI): build + publish
       # =====================
       - name: Build and push image
-        if: github.event_name == 'push'
+        if: github.event.workflow_run.event == 'push'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.sha.outputs.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.sha.outputs.short_sha }}
           cache-from: type=gha,scope=${{ matrix.image }}-main
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-main
