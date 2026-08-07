@@ -585,8 +585,8 @@ def test_run_indexing_success() -> None:
                     result = recollindex.run_indexing(
                         "INCREMENTAL", ["recollindex"]
                     )
-                    # source: exit_code = proc.returncode or 1 -> 0 or 1 = 1
-                    assert result == 1
+                    # exit_code = proc.returncode -> 0
+                    assert result == 0
     finally:
         recollindex.console = orig
 
@@ -665,8 +665,8 @@ def test_main_incremental_success() -> None:
                                 with patch("subprocess.Popen", return_value=mock_proc):
                                     with patch("time.sleep"):
                                         result = recollindex.main()
-                                        # proc.returncode or 1 → 0 or 1 = 1
-                                        assert result == 1
+                                        # proc.returncode → 0
+                                        assert result == 0
     finally:
         recollindex.console = orig
 
@@ -734,7 +734,7 @@ def test_main_rebuild_success() -> None:
                                         with patch("time.sleep"):
                                             with patch.object(sys, "argv", ["recollindex.py", "--rebuild"]):
                                                 result = recollindex.main()
-                                                assert result == 1
+                                                assert result == 0
     finally:
         recollindex.console = orig
 
