@@ -4,6 +4,7 @@
 # Services:
 #   recoll-engine           — Document/image/audio indexer (OCR, EXIF, metadata)
 #   recoll-webui            — Recoll web search interface
+#   recoll-audio-worker     — Audio/video transcription (whisper.cpp → .txt transcripts)
 #   immich-server           — Photo/video management with ML search
 #   immich-machine-learning — Immich ML backend (face recognition, CLIP tags)
 #   mbsync                  — IMAP → Maildir sync (for Recoll email indexing)
@@ -20,6 +21,7 @@ networks:
 
 volumes:
   immich-redis-data:
+  recoll-audio-data:
 
 # ---------------------------------------------------------------------------
 # Constants — YAML anchors for DRY path references
@@ -123,6 +125,11 @@ services:
         source: *sms-data
         target: /homes/sms
         read_only: true
+      # Audio/video transcripts (from recoll-audio-worker)
+      - type: volume
+        source: recoll-audio-data
+        target: /homes/transcripts
+        read_only: true
     command:
       - recollindex
 
@@ -218,11 +225,11 @@ services:
         target: /data/sync-chloe-phone
         read_only: true
     healthcheck:
-      test: ['CMD', 'immich-machine-learning-healthcheck']
+      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3001/api/server-info/ping\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
       interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     group_add:
       - '44'
       - '107'
@@ -323,7 +330,7 @@ services:
       # Application config directory — mbsyncrc mounted read-only
       - type: bind
         source: *mbsync-config
-        target: /home/msync/.mfilter.d
+        target: /home/msync/.isync
         read_only: true
       # Data directory — Maildir tree where synced emails live
       - type: bind
@@ -414,4 +421,65 @@ services:
     # Output is /output (organized markdown files)
     # Poll interval: ${SMS_POLL_INTERVAL:-300} seconds
     command: ['python', 'process.py', '/input/SMS-RCS', '/output', '${SMS_POLL_INTERVAL:-300}']
+
+  # ========================================================================
+  # AUDIO/VIDEO TRANSCRIPTION — whisper.cpp → plain-text transcripts
+  # ========================================================================
+  # Polls input directories for audio and video files, transcribes them to
+  # plain-text transcripts using whisper.cpp. Recoll indexes the .txt files.
+  #
+  # Input:  /input/<source>/ (audio/video files from phone, home, WhatsApp)
+  # Output: recoll-audio-data volume → mounted as /homes/transcripts/ in recoll-engine
+  # Model:  downloaded at startup from HuggingFace based on WHISPER_MODEL env var
+  # ========================================================================
+
+  recoll-audio-worker:
+    container_name: recoll-audio-worker
+    build: ./recoll-audio-worker
+    restart: unless-stopped
+    networks:
+      - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+    environment:
+      POLL_INTERVAL: ${AUDIO_POLL_INTERVAL:-300}
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      WHISPER_LANGUAGE: ${WHISPER_LANGUAGE:-auto}
+    volumes:
+      # Input — audio/video files from various sources (read-only)
+      - type: bind
+        source: *alex-phone
+        target: /input/alex-phone
+        read_only: true
+      - type: bind
+        source: *chloe-phone
+        target: /input/chloe-phone
+        read_only: true
+      - type: bind
+        source: *alex-hades
+        target: /input/alex-hades
+        read_only: true
+      - type: bind
+        source: *chloe-home-sync
+        target: /input/chloe-home
+        read_only: true
+      - type: bind
+        source: *alex-gdrive
+        target: /input/alex-gdrive
+        read_only: true
+      - type: bind
+        source: *chloe-gdrive
+        target: /input/chloe-gdrive
+        read_only: true
+      - type: bind
+        source: *whatsapp-data
+        target: /input/whatsapp
+        read_only: true
+      # Output — transcripts (persisted across restarts)
+      - type: volume
+        source: recoll-audio-data
+        target: /output
 

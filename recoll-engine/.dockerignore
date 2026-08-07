@@ -11,4 +11,3 @@ build
 .pytest_cache
 .dockerignore
 .env
-.venv
