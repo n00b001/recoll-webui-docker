@@ -29,8 +29,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 # ---------------------------------------------------------------------------
 
 CONTAINER = "recoll-engine"
-LOG_FILE = "/mnt/shuttle/share/app-data/recoll/.recoll/recollindex.log"
-CONFIG_FILE = "/mnt/shuttle/share/app-data/recoll/.recoll/recoll.conf"
+BASE_PATH = os.environ.get("RECOLL_BASE_PATH", "/mnt/shuttle/share")
+LOG_FILE = os.path.join(BASE_PATH, "app-data/recoll/.recoll/recollindex.log")
+CONFIG_FILE = os.path.join(BASE_PATH, "app-data/recoll/.recoll/recoll.conf")
 INDEX_PATH = "/root/.recoll/xapiandb"
 LOCK_FILE = "/tmp/recollindex-wrapper.lock"
 DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
@@ -389,7 +390,7 @@ def run_indexing(mode: str, command: list[str]) -> int:
             )
             time.sleep(1)
 
-        exit_code = proc.returncode or 1
+        exit_code = proc.returncode
 
     duration = time.monotonic() - start
 
