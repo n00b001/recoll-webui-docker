@@ -36,6 +36,9 @@ jobs:
           - image: sms-processor
             context: ./sms-processor
 
+          - image: recoll-audio-worker
+            context: ./recoll-audio-worker
+
     steps:
       - name: Determine commit SHA
         id: sha
