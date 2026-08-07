@@ -13,7 +13,7 @@ A Dockerized homelab stack that indexes all personal data into searchable stores
 | **Recoll Engine** | ✅ Running | Full-text index for documents (PDF, DOCX, ODT), images (EXIF/IPTC/XMP via exiftool), scanned PDFs (Tesseract OCR), and email (Maildir) |
 | **Recoll WebUI** | ✅ Running | Bottle-based web search interface (port 9080) |
 | **Immich** | ✅ Running | Photo/video library with ML-powered face recognition and CLIP tags (port 2283) |
-| **Mail Archiver** | ✅ Running | mbsync IMAP-to-Maildir sync + MailArchiver web UI (port 30315) |
+| **Email (mbsync)** | ✅ Running | IMAP → Maildir sync every 5 minutes (no web UI) |
 | **WhatsApp Archiver** | ✅ Running | Baileys multi-device client that continuously exports chats to plaintext and downloads media |
 | **SMS Processor** | ✅ Running | Parses SMS Backup & Restore XML exports into per-contact markdown files |
 | **Audio Worker** | 🟡 WIP | faster-whisper container ready; transcription pipeline and Recoll integration pending |
@@ -41,7 +41,7 @@ Each service follows the same pattern: **source → processor → indexed output
 - [x] OCR for scanned PDFs (Tesseract English)
 - [x] Recoll WebUI
 - [x] Immich integration (photos, videos, ML tags, face recognition)
-- [x] Email sync (mbsync IMAP → Maildir + MailArchiver web UI)
+- [x] Email sync (mbsync IMAP → Maildir every 5 minutes)
 
 ### Messages ✅ — WhatsApp & SMS
 - [x] WhatsApp Archiver (Baileys multi-device client)
@@ -102,7 +102,7 @@ docker compose ps
 |---------|------|-----|---------|
 | recoll-webui | 9080 | http://localhost:9080 | Document/image/email search |
 | immich-server | 2283 | http://localhost:2283 | Photo/video library |
-| mail-archiver | 30315 | http://localhost:30315 | Email archive |
+| mbsync | (none) | — | Background IMAP → Maildir sync (no web UI)
 
 ## Data Layout
 
@@ -126,7 +126,8 @@ docker compose ps
 
 - Recoll index: `/mnt/shuttle/share/app-data/recoll`
 - Immich data: `/mnt/shuttle/share/app-data/immich`
-- MailArchiver data: `/mnt/shuttle/share/app-data/mail-archiver`
+- mbsync config: `/mnt/shuttle/share/app-data/mbsync/config`
+- mbsync Maildir: `/mnt/shuttle/share/app-data/mbsync/data`
 - WhatsApp config: `/mnt/shuttle/share/app-data/whatsapp/config`
 - WhatsApp exports: `/mnt/shuttle/share/app-data/whatsapp/data`
 
