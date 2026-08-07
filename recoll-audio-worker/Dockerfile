@@ -1,7 +1,7 @@
 # =============================================================================
 # Audio/Video Transcription Worker — whisper.cpp
 # =============================================================================
-# Debian slim base with ffmpeg, curl, and the whisper.cpp CLI binary.
+# Debian slim base with ffmpeg, curl, and whisper.cpp built from source.
 # Model is downloaded at container startup based on WHISPER_MODEL env var.
 # =============================================================================
 
@@ -9,25 +9,40 @@ FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies
+# Install runtime + build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl=7.88.1-10+deb12u14 \
-    ffmpeg=7:6.0.1-0+deb12u1 \
+    curl=7.88.1-10+deb12u15 \
+    ffmpeg=7:5.1.9-0+deb12u1 \
     python3-minimal=3.11.2-1+b1 \
     tini=0.19.0-1+b3 \
+    && ( apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        git \
+        cmake \
+        && cd /tmp \
+        && git clone https://github.com/ggml-org/whisper.cpp.git \
+        && cd whisper.cpp \
+        && git checkout v1.7.2 \
+        && mkdir build && cd build \
+        && cmake .. -DBUILD_SHARED_LIBS=OFF \
+        -DWHISPER_SDL=OFF \
+        -DWHISPER_SDL2=OFF \
+        -DWHISPER_OPENMP=OFF \
+        -DWHISPER_COREML=OFF \
+        -DWHISPER_METAL=OFF \
+        -DWHISPER_CUBLAS=OFF \
+        -DWHISPER_CLBLAST=OFF \
+        -DWHISPER_VULKAN=OFF \
+        -DWHISPER_VULKAN=OFF \
+        && make -j$(nproc) \
+        && cp bin/main /usr/local/bin/whisper \
+        && cd /tmp \
+        && rm -rf /tmp/whisper.cpp \
+        && apt-get purge -y build-essential git cmake \
+        && apt-get autoremove -y \
+    ) \
     && rm -rf /var/lib/apt/lists/*
-
-# Download whisper.cpp prebuilt CLI binary
-# Using the official GitHub release
-RUN WHISPER_VERSION="1.7.2" && \
-    curl -fsSL "https://github.com/ggerganov/whisper.cpp/releases/download/v${WHISPER_VERSION}/binaries/linux-cli.zip" \
-    -o /tmp/whisper.zip && \
-    mkdir -p /usr/local/bin && \
-    # Extract the whisper binary (zip contains a 'whisper' executable)
-    cd /tmp && unzip -o whisper.zip && \
-    chmod +x /tmp/whisper && \
-    mv /tmp/whisper /usr/local/bin/whisper && \
-    rm -f /tmp/whisper.zip
 
 # Create models directory (model downloaded at runtime)
 RUN mkdir -p /models
