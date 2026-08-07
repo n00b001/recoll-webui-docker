@@ -35,7 +35,7 @@ x-constants:
   chloe-home: &chloe-home /mnt/shuttle/share/chloe-home
   recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
   immich-data: &immich-data /mnt/shuttle/share/app-data/immich
-  # mbsync: config (mbsyncrc) and data (Maildir tree)
+  # mbsync: config (mbsync.rc) and data (Maildir tree)
   mbsync-config: &mbsync-config /mnt/shuttle/share/app-data/mbsync/config
   mbsync-data: &mbsync-data /mnt/shuttle/share/app-data/mbsync/data
   # whatsapp: config (Baileys sessions) and data (chats, media exports)
@@ -315,33 +315,41 @@ services:
   # Recoll indexes the Maildir directory as individual .eml files.
   # Runs via cron (default: every 5 minutes).
   #
-  # Config: app-data/mbsync/config/ — mbsyncrc (mounted read-only)
+  # Config: app-data/mbsync/config/ — mbsync.rc (isync format, mounted read-only)
   # Data:   app-data/mbsync/data/   — Maildir tree (synced emails)
-  # Output: mbsync/data/alex/INBOX/new/*.eml → Recoll indexes /homes/mail/
+  # Output: mbsync/data/INBOX/new/*.eml → Recoll indexes /homes/mail/
+  #
+  # Image: ghcr.io/jakewharton/mbsync (JakeWharton/docker-mbsync)
+  # Config file must be named mbsync.rc and placed in the config volume.
   # ========================================================================
 
   mbsync:
     container_name: mbsync
-    image: ghcr.io/stefanbuck/m-sync:latest
+    image: ghcr.io/jakewharton/mbsync:latest
     restart: unless-stopped
     networks:
       - search-infrastructure
     volumes:
-      # Application config directory — mbsyncrc mounted read-only
+      # Application config directory — mbsync.rc mounted read-only
       - type: bind
         source: *mbsync-config
-        target: /home/msync/.isync
+        target: /config
         read_only: true
       # Data directory — Maildir tree where synced emails live
       - type: bind
         source: *mbsync-data
-        target: /home/msync/mail
+        target: /mail
     environment:
       # Run every 5 minutes
-      CRON_EXPRESSION: '*/5 * * * *'
-      # One-shot mode: sync all accounts then wait for next cron tick
-      MBSYNC_ONE_SHOT: 'true'
+      CRON: '*/5 * * * *'
+      # Optional: set PUID/PGID to write mail as a specific user/group
+      # PUID: '1000'
+      # PGID: '1000'
+      # Optional: healthchecks.io integration
+      # HEALTHCHECK_ID: '<your-check-id>'
     # No ports exposed — background sync only
+    # Config file: app-data/mbsync/config/mbsync.rc (isync format)
+    # Mail data:   app-data/mbsync/data/               (Maildir tree)
 
   # ========================================================================
   # WHATSAPP ARCHIVER — Baileys-based message and media export
