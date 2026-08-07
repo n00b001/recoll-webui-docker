@@ -97,6 +97,14 @@ repos:
         always_run: true
         stages: [pre-push]
 
+      - id: actionlint
+        name: actionlint (GitHub Actions)
+        entry: bash -c '$HOME/go/bin/actionlint'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
   - repo: https://github.com/trufflesecurity/trufflehog
     rev: v3.96.0
     hooks:
