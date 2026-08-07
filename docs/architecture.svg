@@ -1,37 +1,18 @@
-<!-- @dsCard group="architecture" -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" font-family="'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#0f172a"/>
       <stop offset="100%" stop-color="#1e293b"/>
     </linearGradient>
-    <filter id="shadow" x="-4%" y="-6%" width="110%" height="125%">
-      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-opacity="0.2"/>
-    </filter>
     <style>
       .title { font-size: 22px; fill: #f8fafc; font-weight: 700; letter-spacing: -0.5px; }
       .subtitle { font-size: 12px; fill: #64748b; }
       .section-label { font-size: 10px; fill: #475569; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
       .svc-name { font-size: 14px; fill: #f1f5f9; font-weight: 600; }
       .svc-desc { font-size: 11px; fill: #94a3b8; }
-      .svc-port { font-size: 10px; fill: #64748b; font-family: 'SF Mono', 'Cascadia Code', monospace; }
       .badge-done { font-size: 8px; fill: #fff; font-weight: 700; letter-spacing: 0.5px; }
       .badge-wip { font-size: 8px; fill: #000; font-weight: 700; letter-spacing: 0.5px; }
-      .flow-a { animation: flow1 3s linear infinite; }
-      .flow-b { animation: flow1 3s linear infinite 0.6s; }
-      .flow-c { animation: flow1 3s linear infinite 1.2s; }
-      .flow-d { animation: flow1 3s linear infinite 1.8s; }
-      .flow-e { animation: flow1 3s linear infinite 2.4s; }
-      @keyframes flow1 {
-        0% { stroke-dashoffset: 20; }
-        100% { stroke-dashoffset: 0; }
-      }
     </style>
-    <!-- Glow filter for particles -->
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
   </defs>
 
   <!-- Background -->
@@ -41,103 +22,89 @@
   <text x="480" y="38" class="title" text-anchor="middle">Unified Search Infrastructure</text>
   <text x="480" y="56" class="subtitle" text-anchor="middle">Dockerized homelab stack — documents, photos, email and messages in one place</text>
 
-  <!-- Section labels (left side) -->
+  <!-- Section labels -->
   <text x="30" y="95" class="section-label">Services</text>
   <text x="30" y="405" class="section-label">Storage</text>
 
-  <!-- Divider lines between sections -->
+  <!-- Divider lines -->
   <line x1="20" y1="78" x2="940" y2="78" stroke="#1e293b" stroke-width="1"/>
   <line x1="20" y1="360" x2="940" y2="360" stroke="#1e293b" stroke-width="1"/>
 
-  <!-- ========================================= -->
-  <!-- SERVICE CARDS — clean grid, 2 rows of 3   -->
-  <!-- ========================================= -->
-
   <!-- Row 1: Recoll, Immich, mbsync -->
-  <!-- Card background style: dark card with colored left border -->
 
   <!-- Recoll Engine -->
-  <rect x="50" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="50" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="50" y="92" width="4" height="80" rx="2" fill="#3b82f6"/>
   <text x="72" y="115" class="svc-name">Recoll Engine</text>
-  <text x="72" y="132" class="svc-desc">Documents · Images · OCR · Email (Maildir)</text>
-  <text x="72" y="149" class="svc-desc">PDF, DOCX, ODT, XLSX · EXIF/IPTC/XMP</text>
+  <text x="72" y="132" class="svc-desc">Documents, Images, OCR, Email (Maildir)</text>
+  <text x="72" y="149" class="svc-desc">PDF, DOCX, ODT, XLSX — EXIF/IPTC/XMP</text>
   <rect x="260" y="100" width="42" height="16" rx="8" fill="#052e16" stroke="#10b981" stroke-width="0.5"/>
   <text x="281" y="111" class="badge-done" text-anchor="middle">RUNNING</text>
 
   <!-- Immich -->
-  <rect x="340" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="340" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="340" y="92" width="4" height="80" rx="2" fill="#8b5cf6"/>
   <text x="362" y="115" class="svc-name">Immich</text>
-  <text x="362" y="132" class="svc-desc">Photos · Videos · Face Recognition</text>
-  <text x="362" y="149" class="svc-desc">CLIP semantic search · ML tags</text>
+  <text x="362" y="132" class="svc-desc">Photos, Videos, Face Recognition</text>
+  <text x="362" y="149" class="svc-desc">CLIP semantic search, ML tags</text>
   <rect x="550" y="100" width="42" height="16" rx="8" fill="#052e16" stroke="#10b981" stroke-width="0.5"/>
   <text x="571" y="111" class="badge-done" text-anchor="middle">RUNNING</text>
 
   <!-- mbsync -->
-  <rect x="630" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="630" y="92" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="630" y="92" width="4" height="80" rx="2" fill="#10b981"/>
   <text x="652" y="115" class="svc-name">mbsync</text>
-  <text x="652" y="132" class="svc-desc">IMAP → Maildir sync every 5 minutes</text>
-  <text x="652" y="149" class="svc-desc">Background cron · feeds Recoll index</text>
+  <text x="652" y="132" class="svc-desc">IMAP to Maildir sync every 5 minutes</text>
+  <text x="652" y="149" class="svc-desc">Background cron, feeds Recoll index</text>
   <rect x="840" y="100" width="42" height="16" rx="8" fill="#052e16" stroke="#10b981" stroke-width="0.5"/>
   <text x="861" y="111" class="badge-done" text-anchor="middle">RUNNING</text>
 
   <!-- Row 2: WhatsApp, SMS, Audio -->
+
   <!-- WhatsApp Archiver -->
-  <rect x="50" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="50" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="50" y="190" width="4" height="80" rx="2" fill="#22c55e"/>
   <text x="72" y="213" class="svc-name">WhatsApp Archiver</text>
   <text x="72" y="230" class="svc-desc">Baileys multi-device client</text>
-  <text x="72" y="247" class="svc-desc">Chats → .txt · Media download · Multi-account</text>
+  <text x="72" y="247" class="svc-desc">Chats to .txt, Media download, Multi-account</text>
   <rect x="260" y="198" width="42" height="16" rx="8" fill="#052e16" stroke="#10b981" stroke-width="0.5"/>
   <text x="281" y="209" class="badge-done" text-anchor="middle">RUNNING</text>
 
   <!-- SMS Processor -->
-  <rect x="340" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="340" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="340" y="190" width="4" height="80" rx="2" fill="#f59e0b"/>
   <text x="362" y="213" class="svc-name">SMS Processor</text>
-  <text x="362" y="230" class="svc-desc">SMS Backup &amp; Restore XML → Markdown</text>
-  <text x="362" y="247" class="svc-desc">Per-contact .md files · State tracking</text>
+  <text x="362" y="230" class="svc-desc">SMS Backup &amp; Restore XML to Markdown</text>
+  <text x="362" y="247" class="svc-desc">Per-contact .md files, State tracking</text>
   <rect x="550" y="198" width="42" height="16" rx="8" fill="#052e16" stroke="#10b981" stroke-width="0.5"/>
   <text x="571" y="209" class="badge-done" text-anchor="middle">RUNNING</text>
 
   <!-- Audio Worker (WIP) -->
-  <rect x="630" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="630" y="190" width="270" height="80" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
   <rect x="630" y="190" width="4" height="80" rx="2" fill="#f59e0b" opacity="0.6"/>
   <text x="652" y="213" class="svc-name" fill="#9ca3af">Audio Worker</text>
   <text x="652" y="230" class="svc-desc" fill="#64748b">faster-whisper transcription pipeline</text>
-  <text x="652" y="247" class="svc-desc" fill="#64748b">ffmpeg normalize → Whisper → .txt → Recoll</text>
+  <text x="652" y="247" class="svc-desc" fill="#64748b">ffmpeg normalize, Whisper to .txt, Recoll</text>
   <rect x="840" y="198" width="42" height="16" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="0.5"/>
   <text x="861" y="209" class="badge-wip" text-anchor="middle">WIP</text>
 
-  <!-- ========================================= -->
-  <!-- Animated flow lines: services → storage    -->
-  <!-- ========================================= -->
-  <path d="M185,270 L185,310 L280,340" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,4" class="flow-a" opacity="0.5"/>
-  <path d="M475,270 L475,310 L480,340" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="6,4" class="flow-b" opacity="0.5"/>
-  <path d="M765,270 L765,310 L580,340" fill="none" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6,4" class="flow-c" opacity="0.5"/>
+  <!-- Flow arrows: services to storage -->
+  <path d="M185,278 L185,310 L280,340" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.4"/>
+  <path d="M475,278 L475,310 L480,340" fill="none" stroke="#8b5cf6" stroke-width="1.5" opacity="0.4"/>
+  <path d="M765,278 L765,310 L580,340" fill="none" stroke="#10b981" stroke-width="1.5" opacity="0.4"/>
 
-  <!-- Animated particles -->
-  <circle r="3" fill="#3b82f6" filter="url(#glow)">
-    <animateMotion dur="3s" repeatCount="indefinite" path="M185,270 L185,310 L280,340"/>
-  </circle>
-  <circle r="3" fill="#8b5cf6" filter="url(#glow)">
-    <animateMotion dur="3s" begin="1s" repeatCount="indefinite" path="M475,270 L475,310 L480,340"/>
-  </circle>
-  <circle r="3" fill="#10b981" filter="url(#glow)">
-    <animateMotion dur="3s" begin="2s" repeatCount="indefinite" path="M765,270 L765,310 L580,340"/>
-  </circle>
+  <!-- Arrowheads -->
+  <polygon points="275,335 280,342 285,335" fill="#3b82f6" opacity="0.4"/>
+  <polygon points="475,335 480,342 485,335" fill="#8b5cf6" opacity="0.4"/>
+  <polygon points="575,335 580,342 585,335" fill="#10b981" opacity="0.4"/>
 
-  <!-- ========================================= -->
-  <!-- STORAGE LAYER                              -->
-  <!-- ========================================= -->
+  <!-- Storage layer -->
   <rect x="100" y="375" width="760" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
 
   <text x="480" y="402" class="svc-name" text-anchor="middle">Persistent Storage</text>
-  <text x="480" y="420" class="subtitle" text-anchor="middle">TrueNAS · Docker Volumes · SyncThing</text>
+  <text x="480" y="420" class="subtitle" text-anchor="middle">TrueNAS, Docker Volumes, SyncThing</text>
 
-  <!-- Small storage pill labels -->
+  <!-- Storage volume pills -->
   <rect x="130" y="428" width="80" height="18" rx="9" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
   <text x="170" y="440" font-size="9" fill="#64748b" text-anchor="middle">recoll-index</text>
 
@@ -156,9 +123,7 @@
   <rect x="565" y="428" width="100" height="18" rx="9" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
   <text x="615" y="440" font-size="9" fill="#64748b" text-anchor="middle">documents</text>
 
-  <!-- ========================================= -->
-  <!-- WEB UI NOTE                                -->
-  <!-- ========================================= -->
+  <!-- Web UI note -->
   <rect x="100" y="460" width="760" height="34" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
-  <text x="480" y="482" font-size="11" fill="#475569" text-anchor="middle">Web UIs: Recoll :9080  ·  Immich :2283  &nbsp;&nbsp;|&nbsp;&nbsp; mbsync, WhatsApp &amp; SMS are background services with no web UI</text>
+  <text x="480" y="482" font-size="11" fill="#475569" text-anchor="middle">Web UIs: Recoll :9080, Immich :2283   |   mbsync, WhatsApp &amp; SMS are background services with no web UI</text>
 </svg>
