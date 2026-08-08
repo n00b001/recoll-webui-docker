@@ -60,6 +60,9 @@ services:
 
   recoll-engine:
     container_name: recoll-engine
+    build:
+      context: ./recoll-engine
+      dockerfile: Dockerfile
     image: ghcr.io/n00b001/recoll-engine:latest
     restart: unless-stopped
     networks:
@@ -326,16 +329,18 @@ services:
 
   mbsync:
     container_name: mbsync
-    image: ghcr.io/jakewharton/mbsync:latest
+    build:
+      context: ./mbsync
+      dockerfile: Dockerfile
+    image: ghcr.io/n00b001/mbsync:latest
     restart: unless-stopped
     networks:
       - search-infrastructure
     volumes:
-      # Application config directory — mbsync.rc mounted read-only
+      # Application config directory — template rendered to mbsync.rc at startup
       - type: bind
         source: *mbsync-config
         target: /config
-        read_only: true
       # Data directory — Maildir tree where synced emails live
       - type: bind
         source: *mbsync-data
@@ -343,10 +348,22 @@ services:
     environment:
       # Run every 5 minutes
       CRON: ${MBSYNC_CRON:-'*/5 * * * *'}
-      # IMAP passwords read by PassCmd in mbsyncrc (see mbsync/mbsyncrc)
+      # IMAP account configuration (rendered into mbsync.rc at startup)
+      IMAP_USER_ALEX_GMAIL: ${IMAP_USER_ALEX_GMAIL:-alex@gmail.com}
+      IMAP_HOST_ALEX_GMAIL: ${IMAP_HOST_ALEX_GMAIL:-imap.gmail.com}
+      IMAP_PORT_ALEX_GMAIL: ${IMAP_PORT_ALEX_GMAIL:-993}
       IMAP_PASS_ALEX_GMAIL: ${IMAP_PASS_ALEX_GMAIL:-}
+      IMAP_USER_ALEX_IMAP: ${IMAP_USER_ALEX_IMAP:-alex@example.com}
+      IMAP_HOST_ALEX_IMAP: ${IMAP_HOST_ALEX_IMAP:-mail.example.com}
+      IMAP_PORT_ALEX_IMAP: ${IMAP_PORT_ALEX_IMAP:-993}
       IMAP_PASS_ALEX_IMAP: ${IMAP_PASS_ALEX_IMAP:-}
+      IMAP_USER_CHLOE_OUTLOOK: ${IMAP_USER_CHLOE_OUTLOOK:-chloe@outlook.com}
+      IMAP_HOST_CHLOE_OUTLOOK: ${IMAP_HOST_CHLOE_OUTLOOK:-outlook.office365.com}
+      IMAP_PORT_CHLOE_OUTLOOK: ${IMAP_PORT_CHLOE_OUTLOOK:-993}
       IMAP_PASS_CHLOE_OUTLOOK: ${IMAP_PASS_CHLOE_OUTLOOK:-}
+      IMAP_USER_CHLOE_IMAP: ${IMAP_USER_CHLOE_IMAP:-chloe@example.com}
+      IMAP_HOST_CHLOE_IMAP: ${IMAP_HOST_CHLOE_IMAP:-mail.example.com}
+      IMAP_PORT_CHLOE_IMAP: ${IMAP_PORT_CHLOE_IMAP:-993}
       IMAP_PASS_CHLOE_IMAP: ${IMAP_PASS_CHLOE_IMAP:-}
       # Optional: set PUID/PID to write mail as a specific user/group
       # PUID: '1000'

@@ -1,32 +1,25 @@
 # =============================================================================
-# mbsync Configuration — IMAP → Maildir Sync
+# mbsync Configuration — IMAP → Maildir Sync (TEMPLATE)
 # =============================================================================
-# Image: ghcr.io/jakewharton/mbsync:latest
-# Deploy this file to app-data/mbsync/config/mbsync.rc (the container reads
-# /config/mbsync.rc). Emails sync into app-data/mbsync/data/ (/mail), which is
-# mounted read-only into recoll-engine at /homes/mail for indexing.
+# This file is rendered at container startup via envsubst.
+# All ${VAR} references are replaced with environment variable values.
 #
-# Four mailboxes are configured:
+# Image: custom mbsync wrapper (FROM ghcr.io/jakewharton/mbsync)
+# Config rendered by entrypoint.sh → /config/mbsync.rc
+# Data:   app-data/mbsync/data/   → /mail (Maildir tree)
+#
+# Four mailboxes:
 #   Alex:  alex-gmail (Gmail IMAP), alex-imap (generic IMAP)
 #   Chloe: chloe-outlook (Outlook.com IMAP), chloe-imap (generic IMAP)
 #
-# Each has its own IMAPAccount + IMAPStore + MaildirStore + Channel.
-# Maildirs are separate per account (Path /mail/<account>/).
-#
-# Password: mbsync does NOT expand ${VAR} in this file. PassCmd pulls the
-# secret from the container environment at each sync — value never lands in
-# the file or in /proc/<pid>/cmdline. Passwords are set in .env and passed
-# through the compose `environment:` block.
-#
-# Username: no expansion either, so it is a literal below (not a secret).
-# Replace each placeholder with the real mailbox login.
+# Passwords: PassCmd pulls from container env — never stored in this file.
 # =============================================================================
 
 # ------------------------- Alex — Gmail IMAP --------------------------------
 IMAPAccount alex-gmail
-    Host imap.gmail.com
-    Port 993
-    User alex@gmail.com
+    Host ${IMAP_HOST_ALEX_GMAIL}
+    Port ${IMAP_PORT_ALEX_GMAIL:-993}
+    User ${IMAP_USER_ALEX_GMAIL}
     PassCmd "printenv IMAP_PASS_ALEX_GMAIL"
     AuthMechs LOGIN
     SSLType IMAPS
@@ -51,9 +44,9 @@ Channel alex-gmail-channel
 
 # ------------------------- Alex — Generic IMAP ------------------------------
 IMAPAccount alex-imap
-    Host mail.example.com
-    Port 993
-    User alex@example.com
+    Host ${IMAP_HOST_ALEX_IMAP}
+    Port ${IMAP_PORT_ALEX_IMAP:-993}
+    User ${IMAP_USER_ALEX_IMAP}
     PassCmd "printenv IMAP_PASS_ALEX_IMAP"
     AuthMechs LOGIN
     SSLType IMAPS
@@ -78,9 +71,9 @@ Channel alex-imap-channel
 
 # ------------------------- Chloe — Outlook.com IMAP -------------------------
 IMAPAccount chloe-outlook
-    Host outlook.office365.com
-    Port 993
-    User chloe@outlook.com
+    Host ${IMAP_HOST_CHLOE_OUTLOOK}
+    Port ${IMAP_PORT_CHLOE_OUTLOOK:-993}
+    User ${IMAP_USER_CHLOE_OUTLOOK}
     PassCmd "printenv IMAP_PASS_CHLOE_OUTLOOK"
     AuthMechs LOGIN
     SSLType IMAPS
@@ -105,9 +98,9 @@ Channel chloe-outlook-channel
 
 # ------------------------- Chloe — Generic IMAP -----------------------------
 IMAPAccount chloe-imap
-    Host mail.example.com
-    Port 993
-    User chloe@example.com
+    Host ${IMAP_HOST_CHLOE_IMAP}
+    Port ${IMAP_PORT_CHLOE_IMAP:-993}
+    User ${IMAP_USER_CHLOE_IMAP}
     PassCmd "printenv IMAP_PASS_CHLOE_IMAP"
     AuthMechs LOGIN
     SSLType IMAPS
