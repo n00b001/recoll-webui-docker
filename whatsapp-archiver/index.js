@@ -144,7 +144,6 @@ async function main() {
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: true,
     // Emulate desktop for more message history
     browser: ['WhatsApp Archiver', 'Chrome', '1.0'],
     // Sync full history on first connect
