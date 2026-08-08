@@ -162,7 +162,7 @@ services:
     networks:
       - search-infrastructure
     ports:
-      - '2283:3001'
+      - '${IMMICH_HOST_PORT:-2283}:3001'
     deploy:
       resources:
         limits:
