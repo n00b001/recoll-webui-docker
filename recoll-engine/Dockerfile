@@ -24,7 +24,7 @@ RUN apt-get update && \
         p7zip-full=16.02+dfsg-8 \
         file=1:5.41-3ubuntu0.1 \
         mime-support=3.66 \
-        gettext-base \
+        gettext-base=0.21-4ubuntu4 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
