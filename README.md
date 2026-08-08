@@ -217,3 +217,4 @@ See [SOLUTIONS.md](SOLUTIONS.md) for the full adversarial review of 19 findings,
 ## TrueNAS Notes
 
 This compose file originated from TrueNAS app exports. Standard Docker users can run it directly. TrueNAS-specific init containers (permissions, postgres_upgrade) are removed — set ownership on the host instead.
+# CI test update 2026-08-08T13:00:05Z
