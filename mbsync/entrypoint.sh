@@ -26,6 +26,7 @@ export IMAP_PORT_CHLOE_IMAP="${IMAP_PORT_CHLOE_IMAP:-993}"
 export IMAP_USER_CHLOE_IMAP="${IMAP_USER_CHLOE_IMAP:-chloe@example.com}"
 
 # Render mbsync.rc from template using envsubst
+mkdir -p /config
 envsubst < /etc/mbsyncrc.template > /config/mbsync.rc
 
 # Hand off to the original s6-overlay entrypoint
