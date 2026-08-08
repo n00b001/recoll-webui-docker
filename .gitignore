@@ -9,3 +9,4 @@ recollindex.sh
 whatsapp-archiver/node_modules/
 whatsapp-archiver/.output/
 plans/missing-env-vars.md
+.worktrees/
