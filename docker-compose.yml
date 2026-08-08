@@ -72,10 +72,6 @@ services:
       - type: bind
         source: *recoll-data
         target: /root
-      - type: bind
-        source: ./recoll.conf
-        target: /root/.recoll/recoll.conf
-        read_only: true
       # Alex
       - type: bind
         source: *alex-hades
