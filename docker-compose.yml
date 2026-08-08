@@ -26,31 +26,32 @@ volumes:
 # ---------------------------------------------------------------------------
 # Constants — YAML anchors for DRY path references
 # Edit the path here once, reuse everywhere via *alias
+# Values come from .env file with sensible defaults
 # ---------------------------------------------------------------------------
 x-constants:
-  shuttle: &shuttle /mnt/shuttle/share
-  app-data: &app-data /mnt/shuttle/share/app-data
-  syncthing: &syncthing /mnt/shuttle/share/syncthing
-  alex-home: &alex-home /mnt/shuttle/share/alex-home
-  chloe-home: &chloe-home /mnt/shuttle/share/chloe-home
-  recoll-data: &recoll-data /mnt/shuttle/share/app-data/recoll
-  immich-data: &immich-data /mnt/shuttle/share/app-data/immich
+  shuttle: &shuttle ${SHUTTLE_PATH:-/mnt/shuttle/share}
+  app-data: &app-data ${APP_DATA_PATH:-/mnt/shuttle/share/app-data}
+  syncthing: &syncthing ${SYNCTHING_PATH:-/mnt/shuttle/share/syncthing}
+  alex-home: &alex-home ${ALEX_HOME_PATH:-/mnt/shuttle/share/alex-home}
+  chloe-home: &chloe-home ${CHLOE_HOME_PATH:-/mnt/shuttle/share/chloe-home}
+  recoll-data: &recoll-data ${RECOLL_DATA_PATH:-/mnt/shuttle/share/app-data/recoll}
+  immich-data: &immich-data ${IMMICH_DATA_PATH:-/mnt/shuttle/share/app-data/immich}
   # mbsync: config (mbsync.rc) and data (Maildir tree)
-  mbsync-config: &mbsync-config /mnt/shuttle/share/app-data/mbsync/config
-  mbsync-data: &mbsync-data /mnt/shuttle/share/app-data/mbsync/data
+  mbsync-config: &mbsync-config ${MBSYNC_CONFIG_PATH:-/mnt/shuttle/share/app-data/mbsync/config}
+  mbsync-data: &mbsync-data ${MBSYNC_DATA_PATH:-/mnt/shuttle/share/app-data/mbsync/data}
   # whatsapp: config (Baileys sessions) and data (chats, media exports)
-  whatsapp-config: &whatsapp-config /mnt/shuttle/share/app-data/whatsapp/config
-  whatsapp-data: &whatsapp-data /mnt/shuttle/share/app-data/whatsapp/data
+  whatsapp-config: &whatsapp-config ${WHATSAPP_CONFIG_PATH:-/mnt/shuttle/share/app-data/whatsapp/config}
+  whatsapp-data: &whatsapp-data ${WHATSAPP_DATA_PATH:-/mnt/shuttle/share/app-data/whatsapp/data}
   # sms-processor: organized SMS/RCS messages (output indexed by Recoll)
-  sms-data: &sms-data /mnt/shuttle/share/app-data/sms-organized
-  alex-hades: &alex-hades /mnt/shuttle/share/syncthing/alex-hades-home
-  alex-phone: &alex-phone /mnt/shuttle/share/syncthing/alex-phone
-  alex-gdrive: &alex-gdrive /mnt/shuttle/share/alex-home/google-drive
-  alex-gphotos: &alex-gphotos /mnt/shuttle/share/alex-home/google-photos
-  chloe-home-sync: &chloe-home-sync /mnt/shuttle/share/syncthing/chloe-home
-  chloe-phone: &chloe-phone /mnt/shuttle/share/syncthing/chloe-phone
-  chloe-gdrive: &chloe-gdrive /mnt/shuttle/share/chloe-home/google-drive
-  chloe-gphotos: &chloe-gphotos /mnt/shuttle/share/chloe-home/google-photos
+  sms-data: &sms-data ${SMS_DATA_PATH:-/mnt/shuttle/share/app-data/sms-organized}
+  alex-hades: &alex-hades ${ALEX_HADDES_PATH:-/mnt/shuttle/share/syncthing/alex-hades-home}
+  alex-phone: &alex-phone ${ALEX_PHONE_PATH:-/mnt/shuttle/share/syncthing/alex-phone}
+  alex-gdrive: &alex-gdrive ${ALEX_GDRIVE_PATH:-/mnt/shuttle/share/alex-home/google-drive}
+  alex-gphotos: &alex-gphotos ${ALEX_GPHOTOS_PATH:-/mnt/shuttle/share/alex-home/google-photos}
+  chloe-home-sync: &chloe-home-sync ${CHLOE_HOME_SYNC_PATH:-/mnt/shuttle/share/syncthing/chloe-home}
+  chloe-phone: &chloe-phone ${CHLOE_PHONE_PATH:-/mnt/shuttle/share/syncthing/chloe-phone}
+  chloe-gdrive: &chloe-gdrive ${CHLOE_GDRIVE_PATH:-/mnt/shuttle/share/chloe-home/google-drive}
+  chloe-gphotos: &chloe-gphotos ${CHLOE_GPHOTOS_PATH:-/mnt/shuttle/share/chloe-home/google-photos}
 
 services:
   # ========================================================================
@@ -72,10 +73,6 @@ services:
       - type: bind
         source: *recoll-data
         target: /root
-      - type: bind
-        source: ./recoll.conf
-        target: /root/.recoll/recoll.conf
-        read_only: true
       # Alex
       - type: bind
         source: *alex-hades
@@ -386,7 +383,7 @@ services:
     environment:
       CONFIG_DIR: /config
       DATA_DIR: /data
-      ACCOUNT_NAME: alex
+      ACCOUNT_NAME: ${WHATSAPP_ACCOUNT_ALEX:-alex}
       LOG_LEVEL: ${WHATSAPP_LOG_LEVEL:-info}
     volumes:
       # Application config — Baileys auth state (persistent session)
@@ -412,7 +409,7 @@ services:
     environment:
       CONFIG_DIR: /config
       DATA_DIR: /data
-      ACCOUNT_NAME: chloe
+      ACCOUNT_NAME: ${WHATSAPP_ACCOUNT_CHLOE:-chloe}
       LOG_LEVEL: ${WHATSAPP_LOG_LEVEL:-info}
     volumes:
       # Application config — Baileys auth state (persistent session)

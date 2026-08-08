@@ -27,7 +27,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
-    && chmod 1777 /tmp/libreoffice
+    && chmod 1777 /tmp/libreoffice \
+    && mkdir -p /root/.recoll
+
+COPY recoll.conf /root/.recoll/recoll.conf
 
 WORKDIR /data
 
