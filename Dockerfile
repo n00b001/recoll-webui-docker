@@ -18,4 +18,4 @@ COPY recoll-webui /recoll-webui
 
 EXPOSE 8080
 
-CMD ["python", "/recoll-webui/webui-standalone.py", "-a", "0.0.0.0"]
+CMD ["sh", "-c", "python /recoll-webui/webui-standalone.py -a ${RECOLL_WEBUI_ADDR:-0.0.0.0} -p ${RECOLL_WEBUI_PORT:-8080}"]

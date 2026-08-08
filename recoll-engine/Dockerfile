@@ -24,14 +24,19 @@ RUN apt-get update && \
         p7zip-full=16.02+dfsg-8 \
         file=1:5.41-3ubuntu0.1 \
         mime-support=3.66 \
+        gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
     && chmod 1777 /tmp/libreoffice \
     && mkdir -p /root/.recoll
 
-COPY recoll.conf /root/.recoll/recoll.conf
+COPY recoll.conf.template /root/.recoll/recoll.conf.template
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 WORKDIR /data
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["recollindex"]
