@@ -1,71 +1,131 @@
 # =============================================================================
 # mbsync Configuration — IMAP → Maildir Sync
 # =============================================================================
-# Mounted to /home/msync/.isync/mbsyncrc in the container.
+# Image: ghcr.io/jakewharton/mbsync:latest
+# Deploy this file to app-data/mbsync/config/mbsync.rc (the container reads
+# /config/mbsync.rc). Emails sync into app-data/mbsync/data/ (/mail), which is
+# mounted read-only into recoll-engine at /homes/mail for indexing.
 #
-# Each "IMAPAccount" block defines one mailbox to sync.
-# Edit credentials below and set environment variables in .env.
+# Four mailboxes are configured:
+#   Alex:  alex-gmail (Gmail IMAP), alex-imap (generic IMAP)
+#   Chloe: chloe-outlook (Outlook.com IMAP), chloe-imap (generic IMAP)
 #
-# IMPORTANT: Store passwords in .env file, not here.
-# Use PassCmd to read from environment variables for security.
+# Each has its own IMAPAccount + IMAPStore + MaildirStore + Channel.
+# Maildirs are separate per account (Path /mail/<account>/).
+#
+# Password: mbsync does NOT expand ${VAR} in this file. PassCmd pulls the
+# secret from the container environment at each sync — value never lands in
+# the file or in /proc/<pid>/cmdline. Passwords are set in .env and passed
+# through the compose `environment:` block.
+#
+# Username: no expansion either, so it is a literal below (not a secret).
+# Replace each placeholder with the real mailbox login.
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# Alex's Outlook.com email
-# ---------------------------------------------------------------------------
-IMAPAccount alex-imap
-    Host outlook.office365.com
+# ------------------------- Alex — Gmail IMAP --------------------------------
+IMAPAccount alex-gmail
+    Host imap.gmail.com
     Port 993
-    Proto IMAP
-    User ${ALEX_IMAP_USER}
-    Password "$ALEX_IMAP_PASS"
+    User alex@gmail.com
+    PassCmd "printenv IMAP_PASS_ALEX_GMAIL"
+    AuthMechs LOGIN
     SSLType IMAPS
-    SlaveType Maildir
+    PipelineDepth 50
+
+IMAPStore alex-gmail-remote
+    Account alex-gmail
+
+MaildirStore alex-gmail-local
+    Path /mail/alex-gmail/
+    Inbox /mail/alex-gmail/INBOX
+    SubFolders Verbatim
+
+Channel alex-gmail-channel
+    Far :alex-gmail-remote:
+    Near :alex-gmail-local:
+    Patterns INBOX INBOX.*
+    Sync Pull
+    Create Near
+    Expunge Near
     SyncState *
 
-IMAPStore alex-remote
-    AccountName alex-imap
+# ------------------------- Alex — Generic IMAP ------------------------------
+IMAPAccount alex-imap
+    Host mail.example.com
+    Port 993
+    User alex@example.com
+    PassCmd "printenv IMAP_PASS_ALEX_IMAP"
+    AuthMechs LOGIN
+    SSLType IMAPS
+    PipelineDepth 50
 
-MaildirStore alex-local
-    Path /home/msync/mail/alex/%r/%r/
+IMAPStore alex-imap-remote
+    Account alex-imap
+
+MaildirStore alex-imap-local
+    Path /mail/alex-imap/
+    Inbox /mail/alex-imap/INBOX
     SubFolders Verbatim
-    CreateIn .
-    Sep /
 
-Channel alex-channel
-    Master alex-remote
-    Slave alex-local
-    Pattern INBOX;INBOX.*
-    Sync Both
-    Expunge Slaves
-    Autosync no
+Channel alex-imap-channel
+    Far :alex-imap-remote:
+    Near :alex-imap-local:
+    Patterns INBOX INBOX.*
+    Sync Pull
+    Create Near
+    Expunge Near
+    SyncState *
 
-# ---------------------------------------------------------------------------
-# Add more accounts below (uncomment and edit)
-# ---------------------------------------------------------------------------
-# IMAPAccount chloe-imap
-#     Host outlook.office365.com
-#     Port 993
-#     Proto IMAP
-#     User ${CHLOE_IMAP_USER}
-#     Password "$CHLOE_IMAP_PASS"
-#     SSLType IMAPS
-#     SlaveType Maildir
-#     SyncState *
-#
-# IMAPStore chloe-remote
-#     AccountName chloe-imap
-#
-# MaildirStore chloe-local
-#     Path /home/msync/mail/chloe/%r/%r/
-#     SubFolders Verbatim
-#     CreateIn .
-#     Sep /
-#
-# Channel chloe-channel
-#     Master chloe-remote
-#     Slave chloe-local
-#     Pattern INBOX;INBOX.*
-#     Sync Both
-#     Expunge Slaves
-#     Autosync no
+# ------------------------- Chloe — Outlook.com IMAP -------------------------
+IMAPAccount chloe-outlook
+    Host outlook.office365.com
+    Port 993
+    User chloe@outlook.com
+    PassCmd "printenv IMAP_PASS_CHLOE_OUTLOOK"
+    AuthMechs LOGIN
+    SSLType IMAPS
+    PipelineDepth 50
+
+IMAPStore chloe-outlook-remote
+    Account chloe-outlook
+
+MaildirStore chloe-outlook-local
+    Path /mail/chloe-outlook/
+    Inbox /mail/chloe-outlook/INBOX
+    SubFolders Verbatim
+
+Channel chloe-outlook-channel
+    Far :chloe-outlook-remote:
+    Near :chloe-outlook-local:
+    Patterns INBOX INBOX.*
+    Sync Pull
+    Create Near
+    Expunge Near
+    SyncState *
+
+# ------------------------- Chloe — Generic IMAP -----------------------------
+IMAPAccount chloe-imap
+    Host mail.example.com
+    Port 993
+    User chloe@example.com
+    PassCmd "printenv IMAP_PASS_CHLOE_IMAP"
+    AuthMechs LOGIN
+    SSLType IMAPS
+    PipelineDepth 50
+
+IMAPStore chloe-imap-remote
+    Account chloe-imap
+
+MaildirStore chloe-imap-local
+    Path /mail/chloe-imap/
+    Inbox /mail/chloe-imap/INBOX
+    SubFolders Verbatim
+
+Channel chloe-imap-channel
+    Far :chloe-imap-remote:
+    Near :chloe-imap-local:
+    Patterns INBOX INBOX.*
+    Sync Pull
+    Create Near
+    Expunge Near
+    SyncState *
