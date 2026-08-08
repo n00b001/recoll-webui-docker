@@ -227,6 +227,9 @@ jobs:
           - image: sms-processor
             context: ./sms-processor
 
+          - image: mbsync
+            context: ./mbsync
+
           - image: recoll-audio-worker
             context: ./recoll-audio-worker
 
