@@ -116,8 +116,9 @@ def get_config():
     # get useful things from recoll.conf
     rclconf = rclconfig.RclConfig()
     config['confdir'] = rclconf.getConfDir()
+    topdirs = rclconf.config.get('topdirs', rclconf.keydir) if rclconf.config else rclconf.keydir
     config['dirs'] = [os.path.expanduser(d) for d in
-                      shlex.split(rclconf.config.get('topdirs', rclconf.keydir))]
+                      shlex.split(topdirs or rclconf.keydir or '')]
     config['stemlang'] = rclconf.config.get('indexstemminglanguages', rclconf.keydir)
     # get config from cookies or defaults
     for k, v in DEFAULTS.items():
