@@ -188,6 +188,8 @@ services:
         condition: service_healthy
       immich-redis:
         condition: service_healthy
+      immich-machine-learning:
+        condition: service_healthy
     volumes:
       - type: bind
         source: *immich-data
@@ -231,8 +233,8 @@ services:
       test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3001/api/server-info/ping\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     group_add:
       - '44'
       - '107'
