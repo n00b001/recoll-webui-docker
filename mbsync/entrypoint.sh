@@ -25,15 +25,8 @@ export IMAP_HOST_CHLOE_IMAP="${IMAP_HOST_CHLOE_IMAP:-mail.example.com}"
 export IMAP_PORT_CHLOE_IMAP="${IMAP_PORT_CHLOE_IMAP:-993}"
 export IMAP_USER_CHLOE_IMAP="${IMAP_USER_CHLOE_IMAP:-chloe@example.com}"
 
-# Render mbsync.rc from template using Python (handles ${VAR:-default} correctly)
-python3 -c "
-import os, string
-with open('/etc/mbsyncrc.template') as f:
-    tpl = string.Template(f.read())
-rendered = tpl.safe_substitute(os.environ)
-with open('/config/mbsync.rc', 'w') as f:
-    f.write(rendered)
-"
+# Render mbsync.rc from template using envsubst
+envsubst < /etc/mbsyncrc.template > /config/mbsync.rc
 
 # Hand off to the original s6-overlay entrypoint
 exec /init "$@"
