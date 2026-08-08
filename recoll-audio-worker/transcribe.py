@@ -236,16 +236,15 @@ def transcribe_file(
         )
         raise RuntimeError(f"whisper.cpp failed: {result.stderr[-300:]}")
 
-    # Verify output exists
+    # Verify output exists — whisper.cpp writes to CWD, not -od
     if not txt_output.exists():
-        # whisper.cpp writes to current dir or the output file stem location
-        # Try the input filename pattern
-        alt_txt = wav_path.with_suffix(".txt")
-        if alt_txt.exists():
-            shutil.move(str(alt_txt), str(txt_output))
+        # Check CWD (usually /tmp) for the transcript
+        cwd_txt = wav_path.with_suffix(".txt")
+        if cwd_txt.exists():
+            shutil.move(str(cwd_txt), str(txt_output))
         else:
             raise RuntimeError(
-                f"Transcript not found at {txt_output} or {alt_txt}"
+                f"Transcript not found at {txt_output} or {cwd_txt}"
             )
 
     log.info("Transcript written: %s (%d bytes)", txt_output, txt_output.stat().st_size)
