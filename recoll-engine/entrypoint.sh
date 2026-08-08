@@ -25,7 +25,7 @@ export SMS_DATA_PATH="${SMS_DATA_PATH:-/homes/sms}"
 envsubst '${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
 ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
 ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
-  < /root/.recoll/recoll.conf.template > /root/.recoll/recoll.conf
+  < /etc/recoll.conf.template > /root/.recoll/recoll.conf
 
 # Execute the original command
 exec "$@"
