@@ -21,7 +21,7 @@ repos:
         always_run: true
       - id: dockerfile-check
         name: validate Dockerfiles exist
-        entry: "bash -c 'for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do test -f \"$f\" || { echo \"FAIL: $f not found\"; exit 1; }; done'"
+        entry: "bash -c 'for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile mbsync/Dockerfile; do test -f \"$f\" || { echo \"FAIL: $f not found\"; exit 1; }; done'"
         language: system
         pass_filenames: false
         always_run: true
@@ -92,6 +92,14 @@ repos:
       - id: docker-build-sms-processor
         name: docker build (sms-processor)
         entry: bash -c 'docker build -t sms-processor ./sms-processor'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: docker-build-mbsync
+        name: docker build (mbsync)
+        entry: bash -c 'docker build -t mbsync ./mbsync'
         language: system
         pass_filenames: false
         always_run: true
