@@ -28,6 +28,7 @@ import hashlib
 import html
 import json
 import logging
+import os
 import re
 import sys
 import time
@@ -48,7 +49,7 @@ log = logging.getLogger("sms-processor")
 # ---------------------------------------------------------------------------
 INPUT_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/input")
 OUTPUT_DIR = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("/output")
-POLL_SECONDS = int(sys.argv[3]) if len(sys.argv) > 3 else 300  # 5 min
+POLL_SECONDS = int(os.environ.get("POLL_INTERVAL", sys.argv[3])) if len(sys.argv) > 3 else int(os.environ.get("POLL_INTERVAL", "300"))
 STATE_FILE = OUTPUT_DIR / ".processed.json"
 
 
