@@ -4,8 +4,7 @@ WORKDIR /app
 
 COPY process.py .
 
-# Poll interval (seconds) — override at runtime via -e POLL_INTERVAL
+# Poll interval (seconds) — override at runtime via -e POLL_INTERVAL or docker-compose command
 ENV POLL_INTERVAL=300
 
-ENTRYPOINT ["python", "process.py"]
-CMD ["/input", "/output", "300"]
+CMD ["python", "process.py", "/input", "/output", "300"]
