@@ -25,20 +25,15 @@ export IMAP_HOST_CHLOE_IMAP="${IMAP_HOST_CHLOE_IMAP:-mail.example.com}"
 export IMAP_PORT_CHLOE_IMAP="${IMAP_PORT_CHLOE_IMAP:-993}"
 export IMAP_USER_CHLOE_IMAP="${IMAP_USER_CHLOE_IMAP:-chloe@example.com}"
 
-# Render mbsync.rc from template (POSIX sh + sed, no envsubst needed)
-sed -e "s|\${IMAP_HOST_ALEX_GMAIL}|${IMAP_HOST_ALEX_GMAIL}|g" \
-    -e "s|\${IMAP_PORT_ALEX_GMAIL}|${IMAP_PORT_ALEX_GMAIL}|g" \
-    -e "s|\${IMAP_USER_ALEX_GMAIL}|${IMAP_USER_ALEX_GMAIL}|g" \
-    -e "s|\${IMAP_HOST_ALEX_IMAP}|${IMAP_HOST_ALEX_IMAP}|g" \
-    -e "s|\${IMAP_PORT_ALEX_IMAP}|${IMAP_PORT_ALEX_IMAP}|g" \
-    -e "s|\${IMAP_USER_ALEX_IMAP}|${IMAP_USER_ALEX_IMAP}|g" \
-    -e "s|\${IMAP_HOST_CHLOE_OUTLOOK}|${IMAP_HOST_CHLOE_OUTLOOK}|g" \
-    -e "s|\${IMAP_PORT_CHLOE_OUTLOOK}|${IMAP_PORT_CHLOE_OUTLOOK}|g" \
-    -e "s|\${IMAP_USER_CHLOE_OUTLOOK}|${IMAP_USER_CHLOE_OUTLOOK}|g" \
-    -e "s|\${IMAP_HOST_CHLOE_IMAP}|${IMAP_HOST_CHLOE_IMAP}|g" \
-    -e "s|\${IMAP_PORT_CHLOE_IMAP}|${IMAP_PORT_CHLOE_IMAP}|g" \
-    -e "s|\${IMAP_USER_CHLOE_IMAP}|${IMAP_USER_CHLOE_IMAP}|g" \
-    /etc/mbsyncrc.template > /config/mbsync.rc
+# Render mbsync.rc from template using Python (handles ${VAR:-default} correctly)
+python3 -c "
+import os, string
+with open('/etc/mbsyncrc.template') as f:
+    tpl = string.Template(f.read())
+rendered = tpl.safe_substitute(os.environ)
+with open('/config/mbsync.rc', 'w') as f:
+    f.write(rendered)
+"
 
 # Hand off to the original s6-overlay entrypoint
 exec /init "$@"

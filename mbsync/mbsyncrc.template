@@ -18,7 +18,7 @@
 # ------------------------- Alex — Gmail IMAP --------------------------------
 IMAPAccount alex-gmail
     Host ${IMAP_HOST_ALEX_GMAIL}
-    Port ${IMAP_PORT_ALEX_GMAIL:-993}
+    Port ${IMAP_PORT_ALEX_GMAIL}
     User ${IMAP_USER_ALEX_GMAIL}
     PassCmd "printenv IMAP_PASS_ALEX_GMAIL"
     AuthMechs LOGIN
@@ -45,7 +45,7 @@ Channel alex-gmail-channel
 # ------------------------- Alex — Generic IMAP ------------------------------
 IMAPAccount alex-imap
     Host ${IMAP_HOST_ALEX_IMAP}
-    Port ${IMAP_PORT_ALEX_IMAP:-993}
+    Port ${IMAP_PORT_ALEX_IMAP}
     User ${IMAP_USER_ALEX_IMAP}
     PassCmd "printenv IMAP_PASS_ALEX_IMAP"
     AuthMechs LOGIN
@@ -72,7 +72,7 @@ Channel alex-imap-channel
 # ------------------------- Chloe — Outlook.com IMAP -------------------------
 IMAPAccount chloe-outlook
     Host ${IMAP_HOST_CHLOE_OUTLOOK}
-    Port ${IMAP_PORT_CHLOE_OUTLOOK:-993}
+    Port ${IMAP_PORT_CHLOE_OUTLOOK}
     User ${IMAP_USER_CHLOE_OUTLOOK}
     PassCmd "printenv IMAP_PASS_CHLOE_OUTLOOK"
     AuthMechs LOGIN
@@ -99,7 +99,7 @@ Channel chloe-outlook-channel
 # ------------------------- Chloe — Generic IMAP -----------------------------
 IMAPAccount chloe-imap
     Host ${IMAP_HOST_CHLOE_IMAP}
-    Port ${IMAP_PORT_CHLOE_IMAP:-993}
+    Port ${IMAP_PORT_CHLOE_IMAP}
     User ${IMAP_USER_CHLOE_IMAP}
     PassCmd "printenv IMAP_PASS_CHLOE_IMAP"
     AuthMechs LOGIN
