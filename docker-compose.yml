@@ -300,8 +300,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 1024M
+          cpus: ${IMMICH_REDIS_CPUS:-1}
+          memory: ${IMMICH_REDIS_MEMORY:-1024M}
     volumes:
       - immich-redis-data:/data
     healthcheck:
@@ -463,8 +463,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 256M
+          cpus: ${SMS_PROCESSOR_CPUS:-1}
+          memory: ${SMS_PROCESSOR_MEMORY:-256M}
     environment:
       POLL_INTERVAL: ${SMS_POLL_INTERVAL:-300}
     volumes:
