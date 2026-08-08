@@ -135,7 +135,7 @@ async function main() {
   await ensureDir(MEDIA_DIR)
 
   // Check version (suppresses WA warning)
-  const [version] = await fetchLatestBaileysVersion()
+  const { version } = await fetchLatestBaileysVersion()
   console.log(`[archiver] baileys v${version.major}.${version.minor}.${version.patch}`)
 
   // Persistent auth state
