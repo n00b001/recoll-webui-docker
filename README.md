@@ -118,7 +118,7 @@ docker compose ps
 | syncthing/chloe-phone | /homes/chloe/phone | Chloe's phone backup |
 | chloe-home/google-drive | /homes/chloe/gdrive | Chloe's Google Drive |
 | chloe-home/google-photos | /homes/chloe/gphotos | Chloe's Google Photos |
-| whatsapp/data | /data (whatsapp-archiver) | WhatsApp chat exports + media |
+| whatsapp/data | /data (whatsapp-alex / -chloe) | WhatsApp chat exports + media |
 | sms/input | /input (sms-processor) | SMS Backup & Restore XML files |
 | sms/output | /output (sms-processor) | Organized markdown output |
 
@@ -185,7 +185,7 @@ The Python wrapper respects `RECOLL_BASE_PATH` (default: `/mnt/shuttle/share`).
 
 ### WhatsApp Archiver
 
-Connects as a WhatsApp Web multi-device client via [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys). Messages are appended to per-contact `.txt` files; media is downloaded to dated folders. Session persists across restarts so you only scan the QR code once.
+Two containers (`whatsapp-alex`, `whatsapp-chloe`) each connect as a WhatsApp Web multi-device client via [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys). Messages are appended to per-contact `.txt` files; media is downloaded to dated folders. Sessions persist across restarts so you only scan the QR code once per account.
 
 See [whatsapp-archiver/README.md](whatsapp-archiver/README.md) for multi-account setup.
 
