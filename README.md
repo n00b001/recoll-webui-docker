@@ -210,6 +210,14 @@ GitHub Actions workflow (`.github/workflows/ci.yml`):
 
 Pre-commit hooks run linting; pre-push hooks parallelize Docker builds.
 
+## Deployment Rule: Remote-only stack
+**This docker-compose stack runs on truenas.arpa (remote TrueNAS), NOT locally.**
+- Only test containers run locally (use local Docker for testing/verification)
+- Do NOT try to run docker commands against the remote host — no remote Docker access
+- Paths in docker-compose.yml and .env are TrueNAS paths (/mnt/shuttle/share/...)
+- Do NOT inspect local Docker for production state — it only shows test containers
+- **All logs, errors, and container state you share are from PRODUCTION on TrueNAS — local Docker does NOT have them**
+
 ## Solutions & Known Issues
 
 See [SOLUTIONS.md](SOLUTIONS.md) for the full adversarial review of 19 findings, including accepted fixes, rejected items, and phased implementation plans.
@@ -217,4 +225,13 @@ See [SOLUTIONS.md](SOLUTIONS.md) for the full adversarial review of 19 findings,
 ## TrueNAS Notes
 
 This compose file originated from TrueNAS app exports. Standard Docker users can run it directly. TrueNAS-specific init containers (permissions, postgres_upgrade) are removed — set ownership on the host instead.
+
+## Immich Existing Data (standalone stack on TrueNAS)
+The standalone Immich on TrueNAS uses these separate paths:
+- PostgreSQL: `/mnt/shuttle/share/app-data/immich/pg_data`
+- Server uploads: `/mnt/shuttle/share/app-data/immich/data`
+- ML cache: `/mnt/shuttle/share/app-data/immich/cache`
+- Redis: named volume `redis-data` (managed by Docker)
+
+The current docker-compose.yml needs to be updated to mount these correctly.
 # CI test update 2026-08-08T13:00:05Z
