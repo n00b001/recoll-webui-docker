@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -209,3 +210,51 @@ class TestEnvConfig:
             ".webm", ".mp4", ".mov", ".mkv",
         }
         assert transcribe.ALL_EXTENSIONS == expected
+
+
+# ---------------------------------------------------------------------------
+# Test: transcribe_file transcript location fallback
+# ---------------------------------------------------------------------------
+class TestTranscribeFile:
+    def _run_transcribe(
+        self, tmp_path: Path, monkeypatch, *, writes_to_cwd: bool
+    ) -> Path:
+        """Run transcribe_file with a FAKE whisper.cpp.
+
+        Writes the transcript to the absolute -of target (as a well-behaved
+        whisper.cpp does), or to the process CWD (as the buggy build in the
+        container does). Returns what transcribe_file returns.
+        """
+        wav = tmp_path / "clip.wav"
+        wav.write_bytes(b"fake wav")
+        model = tmp_path / "ggml-model.bin"
+        model.write_bytes(b"fake model")
+        output = tmp_path / "output"
+        output.mkdir()
+
+        def fake_whisper(cmd, **kwargs):
+            of = cmd[cmd.index("-of") + 1]
+            if writes_to_cwd:
+                # whisper.cpp ignores -of and writes <stem>.txt in CWD
+                (Path.cwd() / f"{Path(of).stem}.txt").write_text("transcript")
+            else:
+                Path(of + ".txt").write_text("transcript")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(transcribe.subprocess, "run", fake_whisper)
+
+        return transcribe.transcribe_file(wav, model, output, language="auto")
+
+    def test_transcript_in_output_dir(self, tmp_path, monkeypatch) -> None:
+        """Absolute -of honoured: transcript lands at target, no fallback."""
+        ret = self._run_transcribe(tmp_path, monkeypatch, writes_to_cwd=False)
+        assert ret == tmp_path / "output" / "clip.txt"
+        assert (tmp_path / "output" / "clip.txt").read_text() == "transcript"
+
+    def test_transcript_written_to_cwd(self, tmp_path, monkeypatch) -> None:
+        """whisper.cpp writes <stem>.txt to process CWD (/app) — fallback."""
+        ret = self._run_transcribe(tmp_path, monkeypatch, writes_to_cwd=True)
+        assert ret == tmp_path / "output" / "clip.txt"
+        assert (tmp_path / "output" / "clip.txt").read_text() == "transcript"
+        # Moved out of CWD, not copied — no stray copy left behind
+        assert not (Path.cwd() / "clip.txt").exists()
