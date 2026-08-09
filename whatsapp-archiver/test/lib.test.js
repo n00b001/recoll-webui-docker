@@ -320,7 +320,7 @@ describe('formatChatLine', () => {
 describe('resolveVersion', () => {
   it('returns valid version when fetch succeeds', () => {
     const result = { version: { major: 2, minor: 3000, patch: 1043857760 } }
-    expect(resolveVersion(result)).toEqual({ major: 2, minor: 3000, patch: 1043857760 })
+    expect(resolveVersion(result)).toEqual([2, 3000, 1043857760])
   })
 
   it('returns pinned fallback when result is null', () => {
@@ -348,6 +348,6 @@ describe('resolveVersion', () => {
   })
 
   it('returns exact PINNED_BAILEYS_VERSION constant', () => {
-    expect(PINNED_BAILEYS_VERSION).toEqual({ major: 2, minor: 3000, patch: 1043857760 })
+    expect(PINNED_BAILEYS_VERSION).toEqual([2, 3000, 1043857760])
   })
 })
