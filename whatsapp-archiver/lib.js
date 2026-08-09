@@ -9,18 +9,16 @@
 // ---------------------------------------------------------------------------
 
 /** Pinned fallback version (Baileys build profile format).
- *  Matches the pattern used by @whiskeysockets/baileys ^6.7.7 */
-export const PINNED_BAILEYS_VERSION = {
-  major: 2,
-  minor: 3000,
-  patch: 1043857760,
-}
+ *  Matches the pattern used by @whiskeysockets/baileys ^6.7.7.
+ *  Baileys expects version as an array [major, minor, patch] for .join() calls.
+ */
+export const PINNED_BAILEYS_VERSION = [2, 3000, 1043857760]
 
 /**
  * Resolve the Baileys version from fetchLatestBaileysVersion result.
  * Returns the pinned fallback when input is null/undefined/missing fields.
  * @param {object|null|undefined} result - Result from fetchLatestBaileysVersion
- * @returns {object} Valid version object with major, minor, patch
+ * @returns {array} Valid version array [major, minor, patch]
  */
 export function resolveVersion(result) {
   if (!result?.version) {
@@ -30,7 +28,7 @@ export function resolveVersion(result) {
   if (typeof major !== 'number' || typeof minor !== 'number' || typeof patch !== 'number') {
     return PINNED_BAILEYS_VERSION
   }
-  return { major, minor, patch }
+  return [major, minor, patch]
 }
 
 // ---------------------------------------------------------------------------

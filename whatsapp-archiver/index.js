@@ -141,11 +141,11 @@ async function main() {
   try {
     const result = await fetchLatestBaileysVersion()
     version = resolveVersion(result)
-    console.log(`[archiver] baileys v${version.major}.${version.minor}.${version.patch}`)
+    console.log(`[archiver] baileys v${version[0]}.${version[1]}.${version[2]}`)
   } catch (err) {
     version = PINNED_BAILEYS_VERSION
     console.warn(
-      `[archiver] failed to fetch latest Baileys version: ${err.message}. Using pinned fallback v${version.major}.${version.minor}.${version.patch}`
+      `[archiver] failed to fetch latest Baileys version: ${err.message}. Using pinned fallback v${version[0]}.${version[1]}.${version[2]}`
     )
   }
 
