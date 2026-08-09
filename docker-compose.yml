@@ -264,7 +264,7 @@ services:
       - '44'
       - '107'
     healthcheck:
-      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3003\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
+      test: ['CMD-SHELL', "python3 -c 'import urllib.request as u; u.urlopen(\"http://localhost:3003/ping\", timeout=5)' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
