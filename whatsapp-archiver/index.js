@@ -35,6 +35,8 @@ import {
   chatKey,
   extractText,
   formatChatLine,
+  resolveVersion,
+  PINNED_BAILEYS_VERSION,
 } from './lib.js'
 
 // ---------------------------------------------------------------------------
@@ -135,8 +137,17 @@ async function main() {
   await ensureDir(MEDIA_DIR)
 
   // Check version (suppresses WA warning)
-  const { version } = await fetchLatestBaileysVersion()
-  console.log(`[archiver] baileys v${version.major}.${version.minor}.${version.patch}`)
+  let version
+  try {
+    const result = await fetchLatestBaileysVersion()
+    version = resolveVersion(result)
+    console.log(`[archiver] baileys v${version.major}.${version.minor}.${version.patch}`)
+  } catch (err) {
+    version = PINNED_BAILEYS_VERSION
+    console.warn(
+      `[archiver] failed to fetch latest Baileys version: ${err.message}. Using pinned fallback v${version.major}.${version.minor}.${version.patch}`
+    )
+  }
 
   // Persistent auth state
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
