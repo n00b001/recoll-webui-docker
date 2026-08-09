@@ -172,6 +172,7 @@ services:
       - /dev/dri:/dev/dri
     environment:
       NODE_ENV: production
+      IMMICH_PORT: '3001'
       DB_HOSTNAME: immich-postgres
       DB_USERNAME: ${IMMICH_DB_USER:-immich}
       DB_PASSWORD: ${IMMICH_DB_PASSWORD:-}
@@ -230,7 +231,7 @@ services:
         target: /data/sync-chloe-phone
         read_only: true
     healthcheck:
-      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3001/api/server-info/ping\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
+      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3001/server/ping\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5
