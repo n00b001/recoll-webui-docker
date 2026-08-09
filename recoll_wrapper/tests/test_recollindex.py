@@ -823,3 +823,53 @@ def test_constants() -> None:
     assert "recoll.conf" in recollindex.CONFIG_FILE
     assert "xapiandb" in recollindex.INDEX_PATH
     assert recollindex.LOCK_FILE == "/tmp/recollindex-wrapper.lock"
+
+
+def test_config_file_constant_uses_base_path() -> None:
+    """CONFIG_FILE equals BASE_PATH + app-data/recoll/.recoll/recoll.conf."""
+    import os
+
+    import recollindex
+
+    expected = os.path.join(
+        recollindex.BASE_PATH, "app-data/recoll/.recoll/recoll.conf"
+    )
+    assert expected == recollindex.CONFIG_FILE
+
+
+def test_log_file_constant_uses_base_path() -> None:
+    """LOG_FILE equals BASE_PATH + app-data/recoll/.recoll/recollindex.log."""
+    import os
+
+    import recollindex
+
+    expected = os.path.join(
+        recollindex.BASE_PATH, "app-data/recoll/.recoll/recollindex.log"
+    )
+    assert expected == recollindex.LOG_FILE
+
+
+def test_container_diagnostics_recoll_version_stderr() -> None:
+    """container_diagnostics prints stderr when recoll version command has stderr."""
+    import subprocess
+
+    import recollindex
+
+    fake_console = MagicMock()
+    orig = recollindex.console
+    try:
+        recollindex.console = fake_console
+        container = recollindex.CONTAINER
+
+        def side_effect(*args, **_kwargs):
+            if len(args) >= 4 and args[0] == "docker" and args[1] == "exec" and args[2] == container and args[3] == "sh":
+                return subprocess.CompletedProcess(args, 0, "v1\n", "warning\n")
+            return subprocess.CompletedProcess(args, 0, "data\n", "")
+
+        with patch.object(recollindex, "run_cmd", side_effect=side_effect):
+            with patch.object(recollindex, "_get_console", return_value=fake_console):
+                recollindex.container_diagnostics("Test")
+                calls = [str(c) for c in fake_console.print.call_args_list]
+                assert any("warning" in c for c in calls)
+    finally:
+        recollindex.console = orig
