@@ -35,7 +35,10 @@ x-constants:
   alex-home: &alex-home ${ALEX_HOME_PATH:-/mnt/shuttle/share/alex-home}
   chloe-home: &chloe-home ${CHLOE_HOME_PATH:-/mnt/shuttle/share/chloe-home}
   recoll-data: &recoll-data ${RECOLL_DATA_PATH:-/mnt/shuttle/share/app-data/recoll}
-  immich-data: &immich-data ${IMMICH_DATA_PATH:-/mnt/shuttle/share/app-data/immich}
+  # Immich split paths (match standalone TrueNAS structure)
+  immich-pg-data: &immich-pg-data ${IMMICH_PG_DATA_PATH:-/mnt/shuttle/share/app-data/immich/pg_data}
+  immich-server-data: &immich-server-data ${IMMICH_SERVER_DATA_PATH:-/mnt/shuttle/share/app-data/immich/data}
+  immich-ml-cache: &immich-ml-cache ${IMMICH_ML_CACHE_PATH:-/mnt/shuttle/share/app-data/immich/cache}
   # mbsync: config (mbsync.rc) and data (Maildir tree)
   mbsync-config: &mbsync-config ${MBSYNC_CONFIG_PATH:-/mnt/shuttle/share/app-data/mbsync/config}
   mbsync-data: &mbsync-data ${MBSYNC_DATA_PATH:-/mnt/shuttle/share/app-data/mbsync/data}
@@ -193,7 +196,7 @@ services:
         condition: service_healthy
     volumes:
       - type: bind
-        source: *immich-data
+        source: *immich-server-data
         target: /upload
       # Google Photos imports
       - type: bind
@@ -259,7 +262,7 @@ services:
       HF_HOME: /mlcache
     volumes:
       - type: bind
-        source: *immich-data
+        source: *immich-ml-cache
         target: /model-cache
     group_add:
       - '44'
@@ -288,8 +291,8 @@ services:
       POSTGRES_DB: ${IMMICH_DB_NAME:-immich}
     volumes:
       - type: bind
-        source: *immich-data
-        target: /pg_data
+        source: *immich-pg-data
+        target: /var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 30s
