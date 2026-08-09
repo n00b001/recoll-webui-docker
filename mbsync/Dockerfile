@@ -1,11 +1,16 @@
+# =============================================================================
+# mbsync — IMAP → Maildir Sync (isync)
+# =============================================================================
+# Base image already provides isync (1.4.4-r5) + s6-overlay.
+# We only add gettext for envsubst template rendering.
+# =============================================================================
+
 FROM ghcr.io/jakewharton/mbsync:latest
 
 USER root
 
-# Fix broken @edge repos and install gettext for envsubst template rendering
-RUN printf "https://dl-cdn.alpinelinux.org/alpine/v3.21/main\nhttps://dl-cdn.alpinelinux.org/alpine/v3.21/community\n" > /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache curl isync gettext
+# Install gettext for envsubst template rendering (isync + curl already present)
+RUN apk add --no-cache gettext
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
