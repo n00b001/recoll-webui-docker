@@ -172,6 +172,7 @@ services:
       - /dev/dri:/dev/dri
     environment:
       NODE_ENV: production
+      IMMICH_PORT: '3001'
       DB_HOSTNAME: immich-postgres
       DB_USERNAME: ${IMMICH_DB_USER:-immich}
       DB_PASSWORD: ${IMMICH_DB_PASSWORD:-}
