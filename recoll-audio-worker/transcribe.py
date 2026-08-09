@@ -213,7 +213,9 @@ def transcribe_file(
 
     Returns the path to the generated .txt file.
     """
-    txt_output = output_dir / (wav_path.stem + ".txt")
+    # Prefer an absolute -of so whisper.cpp writes the transcript exactly here.
+    out_stem = output_dir / wav_path.stem  # absolute, no .txt extension
+    txt_output = out_stem.with_suffix(".txt")
 
     cmd = [
         str(WHISPER_BIN),
@@ -221,7 +223,7 @@ def transcribe_file(
         "-f", str(wav_path),
         "-otxt",
         "-l", language,
-        "-of", str(txt_output.with_suffix("")),  # output filename stem
+        "-of", str(out_stem),  # absolute output filename stem
         "-od", str(output_dir),
     ]
 
@@ -236,15 +238,20 @@ def transcribe_file(
         )
         raise RuntimeError(f"whisper.cpp failed: {result.stderr[-300:]}")
 
-    # Verify output exists — whisper.cpp writes to CWD, not -od
+    # Verify output exists — whisper.cpp honours an absolute -of, but on
+    # some versions only writes <stem>.txt next to the process CWD (/app).
     if not txt_output.exists():
-        # Check CWD (usually /tmp) for the transcript
-        cwd_txt = wav_path.with_suffix(".txt")
-        if cwd_txt.exists():
-            shutil.move(str(cwd_txt), str(txt_output))
+        for candidate in (
+            Path.cwd() / f"{wav_path.stem}.txt",
+            wav_path.with_suffix(".txt"),  # old /tmp location
+        ):
+            if candidate.exists():
+                shutil.move(str(candidate), str(txt_output))
+                break
         else:
             raise RuntimeError(
-                f"Transcript not found at {txt_output} or {cwd_txt}"
+                f"Transcript not found at {txt_output} "
+                f"(checked CWD {Path.cwd()} and {wav_path})"
             )
 
     log.info("Transcript written: %s (%d bytes)", txt_output, txt_output.stat().st_size)

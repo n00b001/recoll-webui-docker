@@ -9,6 +9,8 @@ import {
   chatKey,
   extractText,
   formatChatLine,
+  resolveVersion,
+  PINNED_BAILEYS_VERSION,
 } from '../lib.js'
 
 // ---------------------------------------------------------------------------
@@ -309,5 +311,43 @@ describe('formatChatLine', () => {
     const line = formatChatLine(msg, new Date())
     expect(line).toContain('0987654321:')
     expect(line).toContain('hey there')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveVersion
+// ---------------------------------------------------------------------------
+describe('resolveVersion', () => {
+  it('returns valid version when fetch succeeds', () => {
+    const result = { version: { major: 2, minor: 3000, patch: 1043857760 } }
+    expect(resolveVersion(result)).toEqual({ major: 2, minor: 3000, patch: 1043857760 })
+  })
+
+  it('returns pinned fallback when result is null', () => {
+    expect(resolveVersion(null)).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns pinned fallback when result is undefined', () => {
+    expect(resolveVersion(undefined)).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns pinned fallback when version object is missing', () => {
+    expect(resolveVersion({})).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns pinned fallback when version fields are undefined', () => {
+    expect(resolveVersion({ version: { major: undefined, minor: undefined, patch: undefined } })).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns pinned fallback when version fields are not numbers', () => {
+    expect(resolveVersion({ version: { major: '2', minor: '3000', patch: '1043857760' } })).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns pinned fallback when only some fields are present', () => {
+    expect(resolveVersion({ version: { major: 2, minor: 3000 } })).toEqual(PINNED_BAILEYS_VERSION)
+  })
+
+  it('returns exact PINNED_BAILEYS_VERSION constant', () => {
+    expect(PINNED_BAILEYS_VERSION).toEqual({ major: 2, minor: 3000, patch: 1043857760 })
   })
 })

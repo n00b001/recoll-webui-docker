@@ -13,6 +13,7 @@ RUN apt-get update && \
         libreoffice-calc=1:7.3.7-0ubuntu0.22.04.12 \
         libreoffice-impress=1:7.3.7-0ubuntu0.22.04.12 \
         poppler-utils=22.02.0-2ubuntu0.13 \
+        python3-mutagen=1.45.1-2 \
         tesseract-ocr=4.1.1-2.1build1 \
         tesseract-ocr-eng=1:4.00~git30-7274cfa-1.1 \
         libimage-exiftool-perl=12.40+dfsg-1 \
@@ -21,6 +22,7 @@ RUN apt-get update && \
         antiword=0.37-16 \
         unrtf=0.21.10-clean-1 \
         unzip=6.0-26ubuntu3.2 \
+        xdg-utils=1.1.3-4.1ubuntu3~22.04.1 \
         p7zip-full=16.02+dfsg-8 \
         file=1:5.41-3ubuntu0.1 \
         mime-support=3.66 \
