@@ -1,0 +1,61 @@
+name: Docker
+
+on:
+  workflow_call:
+    inputs:
+      push:
+        description: 'Push images to registry'
+        type: boolean
+        required: true
+      tags:
+        description: 'Tags for pushed images'
+        type: string
+        required: false
+        default: ''
+    secrets: {}
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: recoll-webui
+            context: .
+          - image: recoll-engine
+            context: ./recoll-engine
+          - image: whatsapp-archiver
+            context: ./whatsapp-archiver
+          - image: sms-processor
+            context: ./sms-processor
+          - image: mbsync
+            context: ./mbsync
+          - image: recoll-audio-worker
+            context: ./recoll-audio-worker
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Create buildx builder (required for GHA cache)
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        if: ${{ inputs.push }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          push: ${{ inputs.push }}
+          tags: ${{ inputs.push && inputs.tags || '' }}
+          # PR: read cache only (no write)
+          # Merge: read + write cache
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: ${{ inputs.push && format('type=gha,mode=max,scope={0}', matrix.image) || '' }}

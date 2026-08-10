@@ -1,0 +1,45 @@
+name: Test
+
+on:
+  workflow_call:
+    secrets: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # ---- Python tests (recoll_wrapper) ----
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Recoll wrapper — tests + coverage (80%)
+        run: cd recoll_wrapper && uv run pytest -v
+
+      # ---- JavaScript tests (whatsapp-archiver) ----
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: whatsapp-archiver/package-lock.json
+
+      - name: WhatsApp archiver — install deps
+        working-directory: whatsapp-archiver
+        run: npm ci
+
+      - name: WhatsApp archiver — tests + coverage (80%)
+        working-directory: whatsapp-archiver
+        run: npm test
+
+      # ---- Python tests (sms-processor) ----
+      - name: SMS processor — tests
+        run: cd sms-processor && uv run pytest -v
+
+      # ---- Python tests (recoll-audio-worker) ----
+      - name: Audio worker — tests
+        run: cd recoll-audio-worker && uv run pytest -v

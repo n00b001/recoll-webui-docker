@@ -1,0 +1,112 @@
+name: Hadolint
+
+on:
+  workflow_call:
+    secrets: {}
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Lint — Dockerfile
+        id: hl-root
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-root.txt
+          no-color: true
+          no-fail: true
+
+      - name: Lint — recoll-engine/Dockerfile
+        id: hl-engine
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: recoll-engine/Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-engine.txt
+          no-color: true
+          no-fail: true
+
+      - name: Lint — whatsapp-archiver/Dockerfile
+        id: hl-whatsapp
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: whatsapp-archiver/Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-whatsapp.txt
+          no-color: true
+          no-fail: true
+
+      - name: Lint — sms-processor/Dockerfile
+        id: hl-sms
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: sms-processor/Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-sms.txt
+          no-color: true
+          no-fail: true
+
+      - name: Lint — recoll-audio-worker/Dockerfile
+        id: hl-audio
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: recoll-audio-worker/Dockerfile
+          args: --config .hadolint
+          output-file: hadolint-audio.txt
+          no-color: true
+          no-fail: true
+
+      - name: Combine results
+        id: combine
+        run: |
+          show_result() {
+            local title="$1" file="$2"
+            echo "### $title"
+            echo '```'
+            if grep -q '[^[:space:]]' "$file" 2>/dev/null; then
+              cat "$file"
+            else
+              echo "No issues found."
+            fi
+            echo ''
+            echo '```'
+            echo ""
+          }
+          {
+            show_result "Dockerfile" hadolint-root.txt
+            show_result "recoll-engine/Dockerfile" hadolint-engine.txt
+            show_result "whatsapp-archiver/Dockerfile" hadolint-whatsapp.txt
+            show_result "sms-processor/Dockerfile" hadolint-sms.txt
+            show_result "recoll-audio-worker/Dockerfile" hadolint-audio.txt
+          } > hadolint-results.md
+          echo "results=$(base64 -w0 < hadolint-results.md)" >> "$GITHUB_OUTPUT"
+
+      - name: Update Pull Request
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const encoded = "${{ steps.combine.outputs.results }}";
+            const results = Buffer.from(encoded, "base64").toString("utf8");
+            const outcome = "${{ job.status }}";
+            const output = `#### Hadolint: \`${outcome}\`\n\n${results}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output,
+            });
+
+      - name: Fail on hadolint findings
+        if: |
+          steps.hl-root.outcome == 'failure' ||
+          steps.hl-engine.outcome == 'failure' ||
+          steps.hl-whatsapp.outcome == 'failure' ||
+          steps.hl-sms.outcome == 'failure' ||
+          steps.hl-audio.outcome == 'failure'
+        run: echo "hadolint found issues" && exit 1

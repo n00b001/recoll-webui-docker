@@ -1,0 +1,43 @@
+name: Lint
+
+on:
+  workflow_call:
+    secrets: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Lint — ruff (recoll_wrapper)
+        run: cd recoll_wrapper && uv run ruff check .
+
+      - name: Lint — ruff (sms-processor)
+        run: cd sms-processor && uv run ruff check .
+
+      - name: Lint — ruff (recoll-audio-worker)
+        run: cd recoll-audio-worker && uv run ruff check .
+
+      - name: Type check — ty
+        run: cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src
+
+      - name: Validate Dockerfiles exist
+        run: |
+          for f in Dockerfile recoll-engine/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile; do
+            test -f "$f" || { echo "FAIL: $f not found"; exit 1; }
+          done
+
+      - name: Lint — Docker Compose
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Lint — GitHub Actions
+        uses: rhysd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
+        with:
+          shell: sh
