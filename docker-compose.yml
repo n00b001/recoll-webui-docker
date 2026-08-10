@@ -303,20 +303,22 @@ services:
 
   immich-redis:
     container_name: immich-redis
-    image: redis:7.2-alpine
+    image: valkey/valkey:9.1.1
     restart: unless-stopped
     networks:
       - search-infrastructure
-    command: ['--requirepass', '${IMMICH_REDIS_PASSWORD:-}']
+    command: ['--port', '6379', '--requirepass', '${IMMICH_REDIS_PASSWORD:-}']
     deploy:
       resources:
         limits:
           cpus: ${IMMICH_REDIS_CPUS:-1}
-          memory: ${IMMICH_REDIS_MEMORY:-1024M}
+          memory: ${IMMICH_REDIS_MEMORY:-4096M}
+    environment:
+      REDIS_PASSWORD: ${IMMICH_REDIS_PASSWORD:-}
     volumes:
       - immich-redis-data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${IMMICH_REDIS_PASSWORD:-}', 'ping']
+      test: ['CMD', 'redis-cli', '-h', '127.0.0.1', '-p', '6379', '-a', '${IMMICH_REDIS_PASSWORD:-}', 'ping']
       interval: 30s
       timeout: 5s
       retries: 5
