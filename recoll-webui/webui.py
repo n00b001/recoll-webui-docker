@@ -122,6 +122,8 @@ def get_config():
     config['stemlang'] = rclconf.config.get('indexstemminglanguages', rclconf.keydir) if rclconf.config else (rclconf.keydir or '')
     # get config from cookies or defaults
     for k, v in DEFAULTS.items():
+        if k == 'mounts':
+            continue  # handled specially below with per-directory cookies
         value = select([bottle.request.get_cookie(k), v])
         config[k] = type(v)(value)
     # Fix csvfields: get rid of invalid ones to avoid needing tests in the dump function
