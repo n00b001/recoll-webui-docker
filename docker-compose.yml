@@ -160,7 +160,7 @@ services:
 
   immich-server:
     container_name: immich-server
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v1.126.0}
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3.0.3}
     restart: unless-stopped
     networks:
       - search-infrastructure
@@ -245,7 +245,7 @@ services:
 
   immich-machine-learning:
     container_name: immich-machine-learning
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-v1.126.0}
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-v3.0.3}-openvino
     restart: unless-stopped
     networks:
       - search-infrastructure
@@ -276,7 +276,7 @@ services:
 
   immich-postgres:
     container_name: immich-postgres
-    image: tensorchord/pgvecto-rs:${IMMICH_POSTGRES_VERSION:-pg14-v0.2.0}
+    image: ghcr.io/immich-app/postgres:${IMMICH_POSTGRES_VERSION:-18-vectorchord0.5.3}
     restart: unless-stopped
     networks:
       - search-infrastructure
@@ -286,6 +286,8 @@ services:
           cpus: ${IMMICH_POSTGRES_CPUS:-1}
           memory: ${IMMICH_POSTGRES_MEMORY:-4096M}
     environment:
+      # MUST match the existing standalone cluster: PGDATA under /var/lib/postgresql/18/docker
+      PGDATA: /var/lib/postgresql/18/docker
       POSTGRES_PASSWORD: ${IMMICH_DB_PASSWORD:-}
       POSTGRES_USER: ${IMMICH_DB_USER:-immich}
       POSTGRES_DB: ${IMMICH_DB_NAME:-immich}
