@@ -63,9 +63,6 @@ services:
 
   recoll-engine:
     container_name: recoll-engine
-    build:
-      context: ./recoll-engine
-      dockerfile: Dockerfile
     image: ghcr.io/n00b001/recoll-engine:latest
     restart: unless-stopped
     networks:
@@ -343,9 +340,6 @@ services:
 
   mbsync:
     container_name: mbsync
-    build:
-      context: ./mbsync
-      dockerfile: Dockerfile
     image: ghcr.io/n00b001/mbsync:latest
     restart: unless-stopped
     networks:
@@ -470,7 +464,7 @@ services:
 
   sms-processor:
     container_name: sms-processor
-    build: ./sms-processor
+    image: ghcr.io/n00b001/sms-processor:latest
     restart: unless-stopped
     networks:
       - search-infrastructure
@@ -509,7 +503,7 @@ services:
 
   recoll-audio-worker:
     container_name: recoll-audio-worker
-    build: ./recoll-audio-worker
+    image: ghcr.io/n00b001/recoll-audio-worker:latest
     restart: unless-stopped
     networks:
       - search-infrastructure
