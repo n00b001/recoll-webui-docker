@@ -20,7 +20,7 @@ networks:
     driver: bridge
 
 volumes:
-  immich-redis-data:
+  redis-data:
   recoll-audio-data:
 
 # ---------------------------------------------------------------------------
@@ -184,6 +184,7 @@ services:
       REDIS_DBINDEX: '0'
       IMMICH_MACHINE_LEARNING_ENABLED: 'true'
       IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
+      IMMICH_LOG_LEVEL: log
     depends_on:
       immich-postgres:
         condition: service_healthy
@@ -231,11 +232,11 @@ services:
         target: /data/sync-chloe-phone
         read_only: true
     healthcheck:
-      test: ['CMD-SHELL', 'node -e "require(\"http\").get(\"http://localhost:3001/server/ping\", r => { process.exit(r.statusCode === 200 ? 0 : 1) })" || exit 1']
+      test: ['CMD', 'immich-healthcheck']
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 5
-      start_period: 120s
+      start_period: 15s
     group_add:
       - '44'
       - '107'
@@ -257,19 +258,22 @@ services:
       NODE_ENV: production
       IMMICH_PORT: '3003'
       HF_HOME: /mlcache
+      MACHINE_LEARNING_CACHE_FOLDER: /mlcache
+      TRANSFORMERS_CACHE: /mlcache
+      IMMICH_LOG_LEVEL: log
     volumes:
       - type: bind
         source: *immich-ml-cache
-        target: /model-cache
+        target: /mlcache
     group_add:
       - '44'
       - '107'
     healthcheck:
-      test: ['CMD-SHELL', "python3 -c 'import urllib.request as u; u.urlopen(\"http://localhost:3003/\", timeout=10)' || exit 1"]
+      test: ['CMD', 'python3', 'healthcheck.py']
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 15s
 
   immich-postgres:
     container_name: immich-postgres
@@ -303,7 +307,7 @@ services:
 
   immich-redis:
     container_name: immich-redis
-    image: redis:7.2-alpine
+    image: valkey/valkey:9.1.1
     restart: unless-stopped
     networks:
       - search-infrastructure
@@ -314,9 +318,9 @@ services:
           cpus: ${IMMICH_REDIS_CPUS:-1}
           memory: ${IMMICH_REDIS_MEMORY:-1024M}
     volumes:
-      - immich-redis-data:/data
+      - redis-data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${IMMICH_REDIS_PASSWORD:-}', 'ping']
+      test: ['CMD', 'valkey-cli', '-a', '${IMMICH_REDIS_PASSWORD:-}', 'ping']
       interval: 30s
       timeout: 5s
       retries: 5
