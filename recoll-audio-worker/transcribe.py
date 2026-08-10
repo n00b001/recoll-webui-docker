@@ -208,13 +208,16 @@ def transcribe_file(
     model_path: Path,
     output_dir: Path,
     language: str,
+    output_stem: str | None = None,
 ) -> Path:
     """Transcribe a WAV file using whisper.cpp CLI.
 
     Returns the path to the generated .txt file.
     """
-    # Prefer an absolute -of so whisper.cpp writes the transcript exactly here.
-    out_stem = output_dir / wav_path.stem  # absolute, no .txt extension
+    # Use explicit output_stem if provided (e.g., original filename without _transcode suffix),
+    # otherwise fall back to the WAV path's stem.
+    stem = output_stem if output_stem is not None else wav_path.stem
+    out_stem = output_dir / stem  # absolute, no .txt extension
     txt_output = out_stem.with_suffix(".txt")
 
     cmd = [
@@ -288,8 +291,8 @@ def process_audio_file(
         else:
             wav_input = audio_path
 
-        # Transcribe
-        txt_path = transcribe_file(wav_input, model_path, out_subdir, language)
+        # Transcribe - pass original audio filename stem so transcript uses correct name
+        txt_path = transcribe_file(wav_input, model_path, out_subdir, language, audio_path.stem)
 
         return txt_path
 
