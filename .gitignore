@@ -10,3 +10,6 @@ whatsapp-archiver/node_modules/
 whatsapp-archiver/.output/
 plans/missing-env-vars.md
 .worktrees/
+
+# Production secrets — never track. Copy .env.example to .env locally / on TrueNAS.
+.env
