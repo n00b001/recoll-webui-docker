@@ -184,7 +184,7 @@ services:
       REDIS_DBINDEX: '0'
       IMMICH_MACHINE_LEARNING_ENABLED: 'true'
       IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning:3003
-      UPLOAD_LOCATION: /upload
+      IMMICH_MEDIA_LOCATION: /upload
     depends_on:
       immich-postgres:
         condition: service_healthy
