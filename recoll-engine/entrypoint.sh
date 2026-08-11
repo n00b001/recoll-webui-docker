@@ -14,20 +14,35 @@ if [ -f /etc/environment ]; then
     set +a
 fi
 
-# Set defaults for all path variables
-export ALEX_HADDES_PATH="${ALEX_HADDES_PATH:-/homes/alex/hades}"
-export ALEX_PHONE_PATH="${ALEX_PHONE_PATH:-/homes/alex/phone}"
-export ALEX_GDRIVE_PATH="${ALEX_GDRIVE_PATH:-/homes/alex/gdrive}"
-export ALEX_GPHOTOS_PATH="${ALEX_GPHOTOS_PATH:-/homes/alex/gphotos}"
-export CHLOE_HOME_SYNC_PATH="${CHLOE_HOME_SYNC_PATH:-/homes/chloe/home}"
-export CHLOE_PHONE_PATH="${CHLOE_PHONE_PATH:-/homes/chloe/phone}"
-export CHLOE_GDRIVE_PATH="${CHLOE_GDRIVE_PATH:-/homes/chloe/gdrive}"
-export CHLOE_GPHOTOS_PATH="${CHLOE_GPHOTOS_PATH:-/homes/chloe/gphotos}"
-export MBSYNC_DATA_PATH="${MBSYNC_DATA_PATH:-/homes/mail}"
-export WHATSAPP_DATA_PATH="${WHATSAPP_DATA_PATH:-/homes/whatsapp}"
-export SMS_DATA_PATH="${SMS_DATA_PATH:-/homes/sms}"
+# Required path variables - must be defined in .env (no defaults)
+required_vars=(
+    ALEX_HADDES_PATH
+    ALEX_PHONE_PATH
+    ALEX_GDRIVE_PATH
+    ALEX_GPHOTOS_PATH
+    CHLOE_HOME_SYNC_PATH
+    CHLOE_PHONE_PATH
+    CHLOE_GDRIVE_PATH
+    CHLOE_GPHOTOS_PATH
+    MBSYNC_DATA_PATH
+    WHATSAPP_DATA_PATH
+    SMS_DATA_PATH
+)
 
-# Render recoll.conf from template (only substitute our known vars)
+# Check all required variables are set
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var:-}" ]; then
+        echo "ERROR: Required environment variable $var is not set. Define it in .env" >&2
+        exit 1
+    fi
+done
+
+# Export all required variables
+for var in "${required_vars[@]}"; do
+    export "$var"
+done
+
+# Render recoll.conf from template with container paths
 envsubst '${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
 ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
 ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
