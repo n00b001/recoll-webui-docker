@@ -13,9 +13,11 @@
 # ---------------------------------------------------------------------------
 
 # All data lives under /homes/ inside the container.
-topdirs = ${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
-          ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
-          ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH} /homes/transcripts
+# Use hardcoded container paths (not env vars) so recoll-webui's get_dirs()
+# can find the directories to populate the Folder dropdown.
+topdirs = /homes/alex/hades /homes/alex/phone /homes/alex/gdrive /homes/alex/gphotos \
+          /homes/chloe/home /homes/chloe/phone /homes/chloe/gdrive /homes/chloe/gphotos \
+          /homes/mail /homes/whatsapp /homes/sms /homes/transcripts
 
 # Follow symlinks (common in TrueNAS datasets)
 followLinks = 1
@@ -154,23 +156,23 @@ systemfilecommand = xdg-mime query filetype
 # ---------------------------------------------------------------------------
 
 # Phone directories: skip large media caches and app data
-[${ALEX_PHONE_PATH}]
+[/homes/alex/phone]
 skippedNames+ = .cache *.sqlite *.wal *.shm
 
-[${CHLOE_PHONE_PATH}]
+[/homes/chloe/phone]
 skippedNames+ = .cache *.sqlite *.wal *.shm
 
 # Google Photos: skip duplicate sidecar files
-[${ALEX_GPHOTOS_PATH}]
+[/homes/alex/gphotos]
 skippedNames+ = .geo.json .metadata
 
-[${CHLOE_GPHOTOS_PATH}]
+[/homes/chloe/gphotos]
 skippedNames+ = .geo.json .metadata
 
 # Synced email: skip Maildir internal metadata files
-[${MBSYNC_DATA_PATH}]
+[/homes/mail]
 skippedNames+ = .syncstate .mbsyncrc uidlist* *.uid
 
 # SMS/RCS organized messages: skip processor state file
-[${SMS_DATA_PATH}]
+[/homes/sms]
 skippedNames+ = .processed.json

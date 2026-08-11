@@ -21,11 +21,8 @@ export MBSYNC_DATA_PATH="${MBSYNC_DATA_PATH:-/homes/mail}"
 export WHATSAPP_DATA_PATH="${WHATSAPP_DATA_PATH:-/homes/whatsapp}"
 export SMS_DATA_PATH="${SMS_DATA_PATH:-/homes/sms}"
 
-# Render recoll.conf from template (only substitute our known vars)
-envsubst '${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
-${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
-${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
-  < /etc/recoll.conf.template > /root/.recoll/recoll.conf
+# Render recoll.conf from template (no variable substitution needed for topdirs/sections anymore)
+cp /etc/recoll.conf.template /root/.recoll/recoll.conf
 
 # Execute the original command
 exec "$@"
