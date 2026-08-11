@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   dateFolder,
   timeStr,
@@ -11,6 +11,7 @@ import {
   formatChatLine,
   resolveVersion,
   PINNED_BAILEYS_VERSION,
+  renderQR,
 } from '../lib.js'
 
 // ---------------------------------------------------------------------------
@@ -349,5 +350,42 @@ describe('resolveVersion', () => {
 
   it('returns exact PINNED_BAILEYS_VERSION constant', () => {
     expect(PINNED_BAILEYS_VERSION).toEqual([2, 3000, 1043857760])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// renderQR
+// ---------------------------------------------------------------------------
+describe('renderQR', () => {
+  it('does nothing for falsy qr input', async () => {
+    await expect(renderQR(null)).resolves.toBeUndefined()
+    await expect(renderQR('')).resolves.toBeUndefined()
+    await expect(renderQR(undefined)).resolves.toBeUndefined()
+  })
+
+  it('calls qrcode-terminal.generate with qr and small:true', async () => {
+    const mockGenerate = vi.fn()
+    // Mock the dynamic import
+    vi.doMock('qrcode-terminal', () => ({
+      default: { generate: mockGenerate },
+      generate: mockGenerate,
+    }), { virtual: true })
+
+    const { renderQR: mockedRenderQR } = await import('../lib.js')
+    await mockedRenderQR('test-qr-payload')
+
+    expect(mockGenerate).toHaveBeenCalledWith('test-qr-payload', { small: true })
+  })
+
+  it('handles missing qrcode-terminal gracefully', async () => {
+    // Clear module cache to force re-import
+    vi.resetModules()
+    vi.doMock('qrcode-terminal', () => {
+      throw new Error('Module not found')
+    }, { virtual: true })
+
+    const { renderQR: mockedRenderQR } = await import('../lib.js')
+    // Should not throw, just console.error
+    await expect(mockedRenderQR('test')).resolves.toBeUndefined()
   })
 })
