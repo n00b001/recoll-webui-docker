@@ -41,6 +41,14 @@ COPY recoll.conf.template /etc/recoll.conf.template
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Copy the entire recoll_wrapper folder (pyproject, docs, tests, etc.) into the image.
+# This ensures container restarts use the version from the image, not a host mount.
+COPY recoll_wrapper/ /usr/local/src/recoll_wrapper/
+RUN chmod +x /usr/local/src/recoll_wrapper/recollindex.py
+
+# Create a symlink so that `recollindex` is in PATH for the host's wrapper to exec into.
+ln -s /usr/local/src/recoll_wrapper/recollindex.py /usr/local/bin/recollindex
+
 WORKDIR /data
 
 ENTRYPOINT ["/entrypoint.sh"]
