@@ -1,119 +1,124 @@
 repos:
-  - repo: local
-    hooks:
-      - id: ruff-check-recoll
-        name: ruff check (recoll_wrapper)
-        entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix .'
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: ruff-check-sms
-        name: ruff check (sms-processor)
-        entry: bash -c 'cd sms-processor && uv run ruff check --fix .'
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: ty-check
-        name: ty check
-        entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src'
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: dockerfile-check
-        name: validate Dockerfiles exist
-        entry: "bash -c 'for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile sms-processor/Dockerfile mbsync/Dockerfile; do test -f \"$f\" || { echo \"FAIL: $f not found\"; exit 1; }; done'"
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: docker-compose-lint
-        name: docker compose config
-        entry: bash -c 'docker compose -f docker-compose.yml config --quiet'
-        language: system
-        pass_filenames: false
-        always_run: true
-
-      # ---- pre-push hooks ----
-      - id: whatsapp-test
-        name: whatsapp-archiver tests
-        entry: bash -c 'cd whatsapp-archiver && npm test'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: recoll-test
-        name: recoll_wrapper tests
-        entry: bash -c 'cd recoll_wrapper && uv run pytest -v'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: sms-test
-        name: sms-processor tests
-        entry: bash -c 'cd sms-processor && uv run pytest -v'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-recoll-webui
-        name: docker build (recoll-webui)
-        entry: bash -c 'docker build -t recoll-webui .'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-recoll-engine
-        name: docker build (recoll-engine)
-        entry: bash -c 'docker build -t recoll-engine ./recoll-engine'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-recoll-audio-worker
-        name: docker build (recoll-audio-worker)
-        entry: bash -c 'docker build -t recoll-audio-worker ./recoll-audio-worker'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-whatsapp-archiver
-        name: docker build (whatsapp-archiver)
-        entry: bash -c 'docker build -t whatsapp-archiver ./whatsapp-archiver'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-sms-processor
-        name: docker build (sms-processor)
-        entry: bash -c 'docker build -t sms-processor ./sms-processor'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: docker-build-mbsync
-        name: docker build (mbsync)
-        entry: bash -c 'docker build -t mbsync ./mbsync'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-      - id: actionlint
-        name: actionlint (GitHub Actions)
-        entry: bash -c '$HOME/go/bin/actionlint'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-  - repo: https://github.com/trufflesecurity/trufflehog
-    rev: v3.96.0
-    hooks:
-      - id: trufflehog
+- repo: local
+  hooks:
+  - id: ruff-check-recoll
+    name: ruff check (recoll_wrapper)
+    entry: bash -c 'cd recoll_wrapper && uv run ruff check --fix .'
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: ruff-check-sms
+    name: ruff check (sms-processor)
+    entry: bash -c 'cd sms-processor && uv run ruff check --fix .'
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: ty-check
+    name: ty check
+    entry: bash -c 'cd recoll_wrapper && uv run ty check . --exclude recoll-webui --exclude src'
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: dockerfile-check
+    name: validate Dockerfiles exist
+    entry: 'bash -c ''for f in Dockerfile recoll-engine/Dockerfile recoll-audio-worker/Dockerfile whatsapp-archiver/Dockerfile
+      sms-processor/Dockerfile mbsync/Dockerfile; do test -f "$f" || { echo "FAIL: $f not found"; exit 1; }; done'''
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: docker-compose-lint
+    name: docker compose config
+    entry: bash -c 'docker compose -f docker-compose.yml config --quiet'
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: resource-limits
+    name: verify container resource limits
+    entry: bash -c 'uv run --with pyyaml python tests/test_resource_limits.py'
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: whatsapp-test
+    name: whatsapp-archiver tests
+    entry: bash -c 'cd whatsapp-archiver && npm test'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: recoll-test
+    name: recoll_wrapper tests
+    entry: bash -c 'cd recoll_wrapper && uv run pytest -v'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: sms-test
+    name: sms-processor tests
+    entry: bash -c 'cd sms-processor && uv run pytest -v'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-recoll-webui
+    name: docker build (recoll-webui)
+    entry: bash -c 'docker build -t recoll-webui .'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-recoll-engine
+    name: docker build (recoll-engine)
+    entry: bash -c 'docker build -t recoll-engine ./recoll-engine'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-recoll-audio-worker
+    name: docker build (recoll-audio-worker)
+    entry: bash -c 'docker build -t recoll-audio-worker ./recoll-audio-worker'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-whatsapp-archiver
+    name: docker build (whatsapp-archiver)
+    entry: bash -c 'docker build -t whatsapp-archiver ./whatsapp-archiver'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-sms-processor
+    name: docker build (sms-processor)
+    entry: bash -c 'docker build -t sms-processor ./sms-processor'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: docker-build-mbsync
+    name: docker build (mbsync)
+    entry: bash -c 'docker build -t mbsync ./mbsync'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+  - id: actionlint
+    name: actionlint (GitHub Actions)
+    entry: bash -c '$HOME/go/bin/actionlint'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages:
+    - pre-push
+- repo: https://github.com/trufflesecurity/trufflehog
+  rev: v3.96.0
+  hooks:
+  - id: trufflehog

@@ -155,6 +155,11 @@ services:
       - search-infrastructure
     ports:
       - '${RECOLL_WEBUI_HOST_PORT:-9080}:8080'
+    deploy:
+      resources:
+        limits:
+          cpus: ${RECOLL_WEBUI_CPUS:-1}
+          memory: ${RECOLL_WEBUI_MEMORY:-512M}
     environment:
       RECOLL_WEBUI_ADDR: ${RECOLL_WEBUI_ADDR:-0.0.0.0}
       RECOLL_WEBUI_PORT: ${RECOLL_WEBUI_PORT:-8080}
@@ -360,6 +365,11 @@ services:
     restart: unless-stopped
     networks:
       - search-infrastructure
+    deploy:
+      resources:
+        limits:
+          cpus: ${MBSYNC_CPUS:-1}
+          memory: ${MBSYNC_MEMORY:-256M}
     volumes:
       # Application config directory — template rendered to mbsync.rc at startup
       - type: bind
