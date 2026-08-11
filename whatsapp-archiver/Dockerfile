@@ -17,12 +17,7 @@ RUN mkdir -p /templates /generated
 # Install rsync for runtime synchronization
 RUN apt-get update && apt-get install -y --no-install-recommends rsync && rm -rf /var/lib/apt/lists/*
 
-# Run as non-root (node:20-slim provides a 'node' user at UID 1000)
-RUN chown -R node:node /app
-USER node
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chmod=0755 entrypoint.sh /entrypoint.sh
 
 VOLUME ["/config", "/data"]
 ENTRYPOINT ["/entrypoint.sh"]
