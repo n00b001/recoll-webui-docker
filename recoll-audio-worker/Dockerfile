@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg=7:5.1.9-0+deb12u1 \
     python3=3.11.2-1+b1 \
     tini=0.19.0-1+b3 \
-    rsync=3.2.7-4 \
+    rsync \
     && ( apt-get install -y --no-install-recommends \
         build-essential=12.9 \
         ca-certificates=20230311+deb12u1 \
