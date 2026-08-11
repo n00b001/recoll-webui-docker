@@ -44,4 +44,3 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /data
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["recollindex"]

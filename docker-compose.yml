@@ -142,10 +142,6 @@ services:
     # the same Xapian write lock on /root (bind-mounted) and fail with
     # "already locked". Keep the container idling as PID 1 so recoll-webui's
     # depends_on and the wrapper's docker exec always have a live container.
-    command:
-      - /bin/sh
-      - -c
-      - exec tail -f /dev/null
 
   recoll-webui:
     container_name: recoll-webui
