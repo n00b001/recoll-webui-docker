@@ -12,7 +12,47 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Gate: skip re-running lint/test/hadolint when a PR merge lands a tree that the
+  # PR workflow already validated. A "Create a merge commit" merge of an up-to-date
+  # PR produces a merge commit whose tree is byte-identical to the PR branch head
+  # (M^2) — exactly the tree the PR's pull_request run already linted/tested. When
+  # that holds there is nothing new to validate, so only the docker build+push
+  # (publishing) work runs on main.
+  #
+  # Full CI still runs when:
+  #   - event is pull_request (normal PR validation)
+  #   - someone pushes directly to main (no merge commit / no M^2)
+  #   - the PR was stale (main moved before merge) so the merged tree differs from
+  #     the PR head — the merged tree was never validated
+  #   - a squash/rebase merge (1-parent commit, new SHA)
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      skip_full_ci: ${{ steps.check.outputs.skip_full_ci }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Need the merge commit's parents (M^2 = PR branch head) to compare trees
+          fetch-depth: 0
+
+      - name: Determine if full CI is needed
+        id: check
+        run: |
+          skip="false"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            tree_m="$(git rev-parse "${{ github.sha }}^{tree}")"
+            # Empty when the commit has no second parent (direct push / squash / rebase)
+            tree_p2="$(git rev-parse "${{ github.sha }}^2^{tree}" 2>/dev/null || true)"
+            if [[ -n "$tree_p2" && "$tree_m" == "$tree_p2" ]]; then
+              skip="true"
+            fi
+          fi
+          echo "skip_full_ci=${skip}" >> "$GITHUB_OUTPUT"
+
   lint:
+    needs: [gate]
+    if: needs.gate.outputs.skip_full_ci != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -49,6 +89,8 @@ jobs:
         with:
           shell: sh
 
+  # Secret scan always runs on push to main: it is the one check whose value is
+  # checking the merged tree itself, and it is cheap (~10s).
   secrets:
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +106,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    needs: [lint, secrets]
+    needs: [gate, lint, secrets]
+    if: needs.gate.outputs.skip_full_ci != 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -104,7 +147,8 @@ jobs:
 
   hadolint:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [gate, test]
+    if: needs.gate.outputs.skip_full_ci != 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -211,7 +255,14 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    needs: [hadolint]
+    needs: [gate, hadolint]
+    # always(): run even when hadolint was skipped by the gate (up-to-date PR merge).
+    # needs.hadolint.result != 'failure': still block on real hadolint failures.
+    if: |
+      always() &&
+      needs.hadolint.result != 'failure' &&
+      (github.event_name == 'pull_request' ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     strategy:
       fail-fast: false
       matrix:
