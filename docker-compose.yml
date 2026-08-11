@@ -145,7 +145,11 @@ services:
     command:
       - /bin/sh
       - -c
-      - exec tail -f /dev/null
+      - |
+        while true; do
+          echo "$(date) [recoll-engine] alive, waiting for docker exec recollindex..."
+          sleep 300
+        done
 
   recoll-webui:
     container_name: recoll-webui
