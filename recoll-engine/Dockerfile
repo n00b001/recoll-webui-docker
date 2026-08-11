@@ -27,6 +27,7 @@ RUN apt-get update && \
         file=1:5.41-3ubuntu0.1 \
         mime-support=3.66 \
         gettext-base=0.21-4ubuntu4 \
+        zstd=1.4.8+dfsg-3build1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
