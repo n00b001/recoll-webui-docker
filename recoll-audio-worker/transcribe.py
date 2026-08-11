@@ -182,6 +182,31 @@ def needs_transcode(audio_path: Path) -> bool:
     return audio_path.suffix.lower() != ".wav"
 
 
+def has_audio_stream(path: Path) -> bool:
+    """Return True if the media file contains an audio stream.
+
+    Used to skip video-only files (e.g. screen recordings without a mic),
+    which ffmpeg cannot convert to WAV ("Output file #0 does not contain
+    any stream"). Non-zero exit or empty output -> no audio stream.
+    """
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "a:0",
+        "-show_entries", "stream=codec_type",
+        "-of", "csv=p=0",
+        str(path),
+    ]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=60, check=False
+        )
+    except subprocess.TimeoutExpired:
+        log.warning("ffprobe timed out probing %s — assuming no audio stream", path)
+        return False
+    return result.stdout.strip() == "audio"
+
+
 def transcode_to_wav(input_path: Path, output_path: Path) -> None:
     """Transcode audio to WAV mono 16kHz using ffmpeg."""
     cmd = [
@@ -270,11 +295,13 @@ def process_audio_file(
     input_base: Path,
     output_base: Path,
     language: str,
-) -> Path | None:
+) -> tuple[Path | None, bool]:
     """Process a single audio file.
 
     Transcodes to WAV if needed, runs whisper.cpp, writes .txt to output.
-    Returns the path to the transcript file, or None on failure.
+    Returns (transcript_path, skipped): transcript_path is the .txt file, or
+    None on failure. `skipped` is True when the file was intentionally left
+    untranscribed (no audio stream) and should be marked processed in state.
     """
     # Mirror directory structure in output
     rel_path = audio_path.relative_to(input_base)
@@ -284,6 +311,12 @@ def process_audio_file(
     tmp_wav = Path("/tmp") / (audio_path.stem + "_transcode.wav")
 
     try:
+        # Video-only files (no audio stream) can't be transcribed — skip them
+        # so ffmpeg doesn't fail on "Output file #0 does not contain any stream".
+        if needs_transcode(audio_path) and not has_audio_stream(audio_path):
+            log.info("No audio stream in %s — skipping", audio_path)
+            return None, True
+
         # Transcode if needed
         if needs_transcode(audio_path):
             transcode_to_wav(audio_path, tmp_wav)
@@ -294,11 +327,11 @@ def process_audio_file(
         # Transcribe - pass original audio filename stem so transcript uses correct name
         txt_path = transcribe_file(wav_input, model_path, out_subdir, language, audio_path.stem)
 
-        return txt_path
+        return txt_path, False
 
     except (RuntimeError, OSError) as e:
         log.error("Failed to process %s: %s", audio_path, e)
-        return None
+        return None, False
 
     finally:
         # Cleanup temp file
@@ -329,11 +362,13 @@ def scan_and_process(
 
         log.info("Processing new/changed file: %s", rel)
 
-        txt_path = process_audio_file(
+        txt_path, skipped = process_audio_file(
             audio_path, model_path, INPUT_DIR, OUTPUT_DIR, language
         )
 
-        if txt_path is not None:
+        # Record in state on success OR intentional skip (e.g. video-only file
+        # with no audio stream) so we don't retry the same file every poll.
+        if txt_path is not None or skipped:
             state[rel] = current_hash
             processed_count += 1
 
