@@ -13,11 +13,10 @@
 # ---------------------------------------------------------------------------
 
 # All data lives under /homes/ inside the container.
-# Use hardcoded container paths (not env vars) so recoll-webui's get_dirs()
-# can find the directories to populate the Folder dropdown.
-topdirs = /homes/alex/hades /homes/alex/phone /homes/alex/gdrive /homes/alex/gphotos \
-          /homes/chloe/home /homes/chloe/phone /homes/chloe/gdrive /homes/chloe/gphotos \
-          /homes/mail /homes/whatsapp /homes/sms /homes/transcripts
+# The entrypoint maps host paths from .env to container paths for get_dirs().
+topdirs = ${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
+          ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
+          ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH} /homes/transcripts
 
 # Follow symlinks (common in TrueNAS datasets)
 followLinks = 1
@@ -154,25 +153,26 @@ systemfilecommand = xdg-mime query filetype
 # ---------------------------------------------------------------------------
 # SUBTREE-SPECIFIC OVERRIDES
 # ---------------------------------------------------------------------------
+# Use env vars (mapped to container paths by entrypoint.sh) so users can customize paths.
 
 # Phone directories: skip large media caches and app data
-[/homes/alex/phone]
+[${ALEX_PHONE_PATH}]
 skippedNames+ = .cache *.sqlite *.wal *.shm
 
-[/homes/chloe/phone]
+[${CHLOE_PHONE_PATH}]
 skippedNames+ = .cache *.sqlite *.wal *.shm
 
 # Google Photos: skip duplicate sidecar files
-[/homes/alex/gphotos]
+[${ALEX_GPHOTOS_PATH}]
 skippedNames+ = .geo.json .metadata
 
-[/homes/chloe/gphotos]
+[${CHLOE_GPHOTOS_PATH}]
 skippedNames+ = .geo.json .metadata
 
 # Synced email: skip Maildir internal metadata files
-[/homes/mail]
+[${MBSYNC_DATA_PATH}]
 skippedNames+ = .syncstate .mbsyncrc uidlist* *.uid
 
 # SMS/RCS organized messages: skip processor state file
-[/homes/sms]
+[${SMS_DATA_PATH}]
 skippedNames+ = .processed.json
