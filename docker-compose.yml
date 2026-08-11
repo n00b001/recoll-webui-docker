@@ -136,8 +136,16 @@ services:
           cpus: ${RECOLL_ENGINE_CPUS:-6}
           memory: ${RECOLL_ENGINE_MEMORY:-8G}
     volumes: *x-data-mounts
+    # Indexing is driven solely by the host-side wrapper (recoll_wrapper/
+    # recollindex.py, `docker exec recoll-engine recollindex`). Do NOT set an
+    # automatic boot-time `recollindex` here: it would race the wrapper for
+    # the same Xapian write lock on /root (bind-mounted) and fail with
+    # "already locked". Keep the container idling as PID 1 so recoll-webui's
+    # depends_on and the wrapper's docker exec always have a live container.
     command:
-      - recollindex
+      - /bin/sh
+      - -c
+      - exec tail -f /dev/null
 
   recoll-webui:
     container_name: recoll-webui
