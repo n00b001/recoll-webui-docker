@@ -142,6 +142,7 @@ services:
     # the same Xapian write lock on /root (bind-mounted) and fail with
     # "already locked". Keep the container idling as PID 1 so recoll-webui's
     # depends_on and the wrapper's docker exec always have a live container.
+    # Default command runs heartbeat + tail log; docker exec recollindex runs indexing.
     command:
       - /bin/sh
       - -c
@@ -149,7 +150,8 @@ services:
         while true; do
           echo "$(date) [recoll-engine] alive, waiting for docker exec recollindex..."
           sleep 300
-        done
+        done &
+        exec tail -f /var/log/recoll-engine.log
 
   recoll-webui:
     container_name: recoll-webui
