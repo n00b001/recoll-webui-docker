@@ -37,6 +37,7 @@ import {
   formatChatLine,
   resolveVersion,
   PINNED_BAILEYS_VERSION,
+  renderQR,
 } from './lib.js'
 
 // ---------------------------------------------------------------------------
@@ -171,7 +172,8 @@ async function main() {
     const { connection, lastDisconnect, qr } = update
 
     if (qr) {
-      console.log('[archiver] QR code printed above — scan with WhatsApp > Linked Devices')
+      await renderQR(qr)
+      console.log('[archiver] Scan the QR above with WhatsApp > Linked Devices (refreshes every ~20s)')
     }
 
     if (connection === 'close') {

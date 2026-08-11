@@ -5,6 +5,25 @@
  */
 
 // ---------------------------------------------------------------------------
+// QR rendering (ESM dynamic import of qrcode-terminal, per Baileys' own pattern)
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a WhatsApp pairing QR code to stdout via qrcode-terminal.
+ * @param {string} qr - The QR payload from Baileys connection.update event
+ * @returns {Promise<void>}
+ */
+export async function renderQR(qr) {
+  if (!qr) return
+  const QR = await import('qrcode-terminal')
+    .then(m => m.default || m)
+    .catch(() => {
+      console.error('QR code terminal not added as dependency')
+    })
+  QR?.generate(qr, { small: true })
+}
+
+// ---------------------------------------------------------------------------
 // Version resolution
 // ---------------------------------------------------------------------------
 
