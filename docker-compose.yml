@@ -26,36 +26,36 @@ volumes:
 # ---------------------------------------------------------------------------
 # Constants — YAML anchors for DRY path references
 # Edit the path here once, reuse everywhere via *alias
-# Values come from .env file with sensible defaults
+# Values MUST be defined in .env file (no defaults)
 # ---------------------------------------------------------------------------
 x-constants:
-  shuttle: &shuttle ${SHUTTLE_PATH:-/mnt/shuttle/share}
-  app-data: &app-data ${APP_DATA_PATH:-/mnt/shuttle/share/app-data}
-  syncthing: &syncthing ${SYNCTHING_PATH:-/mnt/shuttle/share/syncthing}
-  alex-home: &alex-home ${ALEX_HOME_PATH:-/mnt/shuttle/share/alex-home}
-  chloe-home: &chloe-home ${CHLOE_HOME_PATH:-/mnt/shuttle/share/chloe-home}
-  recoll-data: &recoll-data ${RECOLL_DATA_PATH:-/mnt/shuttle/share/app-data/recoll}
+  shuttle: &shuttle ${SHUTTLE_PATH}
+  app-data: &app-data ${APP_DATA_PATH}
+  syncthing: &syncthing ${SYNCTHING_PATH}
+  alex-home: &alex-home ${ALEX_HOME_PATH}
+  chloe-home: &chloe-home ${CHLOE_HOME_PATH}
+  recoll-data: &recoll-data ${RECOLL_DATA_PATH}
   # Immich split paths (match standalone TrueNAS structure)
-  immich-pg-data: &immich-pg-data ${IMMICH_PG_DATA_PATH:-/mnt/shuttle/share/app-data/immich/pg_data}
-  immich-server-data: &immich-server-data ${IMMICH_SERVER_DATA_PATH:-/mnt/shuttle/share/app-data/immich/data}
-  immich-ml-cache: &immich-ml-cache ${IMMICH_ML_CACHE_PATH:-/mnt/shuttle/share/app-data/immich/cache}
+  immich-pg-data: &immich-pg-data ${IMMICH_PG_DATA_PATH}
+  immich-server-data: &immich-server-data ${IMMICH_SERVER_DATA_PATH}
+  immich-ml-cache: &immich-ml-cache ${IMMICH_ML_CACHE_PATH}
   # mbsync: config (mbsync.rc) and data (Maildir tree)
-  mbsync-config: &mbsync-config ${MBSYNC_CONFIG_PATH:-/mnt/shuttle/share/app-data/mbsync/config}
-  mbsync-data: &mbsync-data ${MBSYNC_DATA_PATH:-/mnt/shuttle/share/app-data/mbsync/data}
-  mbsync-runtime: &mbsync-runtime ${MBSYNC_RUNTIME_PATH:-/mnt/shuttle/share/app-data/mbsync/runtime}
+  mbsync-config: &mbsync-config ${MBSYNC_CONFIG_PATH}
+  mbsync-data: &mbsync-data ${MBSYNC_DATA_PATH}
+  mbsync-runtime: &mbsync-runtime ${MBSYNC_RUNTIME_PATH}
   # whatsapp: config (Baileys sessions) and data (chats, media exports)
-  whatsapp-config: &whatsapp-config ${WHATSAPP_CONFIG_PATH:-/mnt/shuttle/share/app-data/whatsapp/config}
-  whatsapp-data: &whatsapp-data ${WHATSAPP_DATA_PATH:-/mnt/shuttle/share/app-data/whatsapp/data}
+  whatsapp-config: &whatsapp-config ${WHATSAPP_CONFIG_PATH}
+  whatsapp-data: &whatsapp-data ${WHATSAPP_DATA_PATH}
   # sms-processor: organized SMS/RCS messages (output indexed by Recoll)
-  sms-data: &sms-data ${SMS_DATA_PATH:-/mnt/shuttle/share/app-data/sms-organized}
-  alex-hades: &alex-hades ${ALEX_HADDES_PATH:-/mnt/shuttle/share/syncthing/alex-hades-home}
-  alex-phone: &alex-phone ${ALEX_PHONE_PATH:-/mnt/shuttle/share/syncthing/alex-phone}
-  alex-gdrive: &alex-gdrive ${ALEX_GDRIVE_PATH:-/mnt/shuttle/share/alex-home/google-drive}
-  alex-gphotos: &alex-gphotos ${ALEX_GPHOTOS_PATH:-/mnt/shuttle/share/alex-home/google-photos}
-  chloe-home-sync: &chloe-home-sync ${CHLOE_HOME_SYNC_PATH:-/mnt/shuttle/share/syncthing/chloe-home}
-  chloe-phone: &chloe-phone ${CHLOE_PHONE_PATH:-/mnt/shuttle/share/syncthing/chloe-phone}
-  chloe-gdrive: &chloe-gdrive ${CHLOE_GDRIVE_PATH:-/mnt/shuttle/share/chloe-home/google-drive}
-  chloe-gphotos: &chloe-gphotos ${CHLOE_GPHOTOS_PATH:-/mnt/shuttle/share/chloe-home/google-photos}
+  sms-data: &sms-data ${SMS_DATA_PATH}
+  alex-hades: &alex-hades ${ALEX_HADDES_PATH}
+  alex-phone: &alex-phone ${ALEX_PHONE_PATH}
+  alex-gdrive: &alex-gdrive ${ALEX_GDRIVE_PATH}
+  alex-gphotos: &alex-gphotos ${ALEX_GPHOTOS_PATH}
+  chloe-home-sync: &chloe-home-sync ${CHLOE_HOME_SYNC_PATH}
+  chloe-phone: &chloe-phone ${CHLOE_PHONE_PATH}
+  chloe-gdrive: &chloe-gdrive ${CHLOE_GDRIVE_PATH}
+  chloe-gphotos: &chloe-gphotos ${CHLOE_GPHOTOS_PATH}
   # Shared index + data mounts. recoll-engine indexes /homes/* and the Web UI
   # (recoll-webui) must see the SAME filesystem: the folder dropdown, mount
   # settings, and Open/Download/Preview all glob/open paths inside this
