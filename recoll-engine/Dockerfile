@@ -27,15 +27,26 @@ RUN apt-get update && \
         file=1:5.41-3ubuntu0.1 \
         mime-support=3.66 \
         gettext-base=0.21-4ubuntu4 \
+        rsync=3.2.3-8ubuntu3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
     && chmod 1777 /tmp/libreoffice \
     && mkdir -p /root/.recoll
 
-# Copy template to /etc to avoid being hidden by the /root bind-mount
-# declared in docker-compose.yml.
-COPY recoll.conf.template /etc/recoll.conf.template
+# Create template and generated directories
+RUN mkdir -p /templates /generated
+
+# Copy template to image
+COPY recoll.conf.template /templates/recoll.conf.template
+
+# Build-time render with defaults (runtime variables will be substituted at container startup)
+# Use envsubst with only build-time known variables, leave runtime vars as-is
+RUN mkdir -p /generated && \
+    envsubst '${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
+    ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
+    ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
+    < /templates/recoll.conf.template > /generated/recoll.conf
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -42,6 +42,7 @@ x-constants:
   # mbsync: config (mbsync.rc) and data (Maildir tree)
   mbsync-config: &mbsync-config ${MBSYNC_CONFIG_PATH:-/mnt/shuttle/share/app-data/mbsync/config}
   mbsync-data: &mbsync-data ${MBSYNC_DATA_PATH:-/mnt/shuttle/share/app-data/mbsync/data}
+  mbsync-runtime: &mbsync-runtime ${MBSYNC_RUNTIME_PATH:-/mnt/shuttle/share/app-data/mbsync/runtime}
   # whatsapp: config (Baileys sessions) and data (chats, media exports)
   whatsapp-config: &whatsapp-config ${WHATSAPP_CONFIG_PATH:-/mnt/shuttle/share/app-data/whatsapp/config}
   whatsapp-data: &whatsapp-data ${WHATSAPP_DATA_PATH:-/mnt/shuttle/share/app-data/whatsapp/data}
@@ -64,6 +65,10 @@ x-constants:
     - type: bind
       source: *recoll-data
       target: /root
+    # Runtime config mount - receives generated assets from container at startup
+    - type: bind
+      source: ${RECOLL_RUNTIME_PATH:-/mnt/shuttle/share/app-data/recoll/runtime}
+      target: /runtime
     # Alex
     - type: bind
       source: *alex-hades
@@ -365,6 +370,10 @@ services:
       - type: bind
         source: *mbsync-config
         target: /config
+      # Runtime config mount - receives generated mbsync.rc from container at startup
+      - type: bind
+        source: *mbsync-runtime
+        target: /runtime
       # Data directory — Maildir tree where synced emails live
       - type: bind
         source: *mbsync-data
