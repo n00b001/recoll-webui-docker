@@ -158,10 +158,15 @@ async function main() {
     auth: state,
     // Emulate desktop for more message history
     browser: ['WhatsApp Archiver', 'Chrome', '1.0'],
-    // Sync full history on first connect
-    syncFullHistory: true,
+    // Sync full history on first connect (v6.7.24+ uses shouldSyncHistoryMessage instead of syncFullHistory)
+    shouldSyncHistoryMessage: () => true,
     // Don't mark online immediately
     markOnlineOnConnect: false,
+    // Enable app state MAC verification to fix "tried remove, but no previous op" error
+    appStateMacVerification: {
+      patch: true,
+      snapshot: true,
+    },
   })
 
   // Save credentials (session persistence)
