@@ -55,6 +55,69 @@ x-constants:
   chloe-phone: &chloe-phone ${CHLOE_PHONE_PATH:-/mnt/shuttle/share/syncthing/chloe-phone}
   chloe-gdrive: &chloe-gdrive ${CHLOE_GDRIVE_PATH:-/mnt/shuttle/share/chloe-home/google-drive}
   chloe-gphotos: &chloe-gphotos ${CHLOE_GPHOTOS_PATH:-/mnt/shuttle/share/chloe-home/google-photos}
+  # Shared index + data mounts. recoll-engine indexes /homes/* and the Web UI
+  # (recoll-webui) must see the SAME filesystem: the folder dropdown, mount
+  # settings, and Open/Download/Preview all glob/open paths inside this
+  # container. One anchor keeps the two services' mounts in lockstep.
+  x-data-mounts: &x-data-mounts
+    # Recoll index and config (shared, engine writes, webui reads)
+    - type: bind
+      source: *recoll-data
+      target: /root
+    # Alex
+    - type: bind
+      source: *alex-hades
+      target: /homes/alex/hades
+      read_only: true
+    - type: bind
+      source: *alex-phone
+      target: /homes/alex/phone
+      read_only: true
+    - type: bind
+      source: *alex-gdrive
+      target: /homes/alex/gdrive
+      read_only: true
+    - type: bind
+      source: *alex-gphotos
+      target: /homes/alex/gphotos
+      read_only: true
+    # Chloe
+    - type: bind
+      source: *chloe-home-sync
+      target: /homes/chloe/home
+      read_only: true
+    - type: bind
+      source: *chloe-phone
+      target: /homes/chloe/phone
+      read_only: true
+    - type: bind
+      source: *chloe-gdrive
+      target: /homes/chloe/gdrive
+      read_only: true
+    - type: bind
+      source: *chloe-gphotos
+      target: /homes/chloe/gphotos
+      read_only: true
+    # Synced email (Maildir tree from mbsync)
+    - type: bind
+      source: *mbsync-data
+      target: /homes/mail
+      read_only: true
+    # WhatsApp exported chats and media
+    - type: bind
+      source: *whatsapp-data
+      target: /homes/whatsapp
+      read_only: true
+    # SMS/RCS organized messages (from sms-processor)
+    - type: bind
+      source: *sms-data
+      target: /homes/sms
+      read_only: true
+    # Audio/video transcripts (from recoll-audio-worker)
+    - type: volume
+      source: recoll-audio-data
+      target: /homes/transcripts
+      read_only: true
 
 services:
   # ========================================================================
@@ -72,64 +135,7 @@ services:
         limits:
           cpus: ${RECOLL_ENGINE_CPUS:-6}
           memory: ${RECOLL_ENGINE_MEMORY:-8G}
-    volumes:
-      - type: bind
-        source: *recoll-data
-        target: /root
-      # Alex
-      - type: bind
-        source: *alex-hades
-        target: /homes/alex/hades
-        read_only: true
-      - type: bind
-        source: *alex-phone
-        target: /homes/alex/phone
-        read_only: true
-      - type: bind
-        source: *alex-gdrive
-        target: /homes/alex/gdrive
-        read_only: true
-      - type: bind
-        source: *alex-gphotos
-        target: /homes/alex/gphotos
-        read_only: true
-      # Chloe
-      - type: bind
-        source: *chloe-home-sync
-        target: /homes/chloe/home
-        read_only: true
-      - type: bind
-        source: *chloe-phone
-        target: /homes/chloe/phone
-        read_only: true
-      - type: bind
-        source: *chloe-gdrive
-        target: /homes/chloe/gdrive
-        read_only: true
-      - type: bind
-        source: *chloe-gphotos
-        target: /homes/chloe/gphotos
-        read_only: true
-      # Synced email (Maildir tree from mbsync)
-      - type: bind
-        source: *mbsync-data
-        target: /homes/mail
-        read_only: true
-      # WhatsApp exported chats and media
-      - type: bind
-        source: *whatsapp-data
-        target: /homes/whatsapp
-        read_only: true
-      # SMS/RCS organized messages (from sms-processor)
-      - type: bind
-        source: *sms-data
-        target: /homes/sms
-        read_only: true
-      # Audio/video transcripts (from recoll-audio-worker)
-      - type: volume
-        source: recoll-audio-data
-        target: /homes/transcripts
-        read_only: true
+    volumes: *x-data-mounts
     command:
       - recollindex
 
@@ -146,10 +152,9 @@ services:
       RECOLL_WEBUI_PORT: ${RECOLL_WEBUI_PORT:-8080}
     depends_on:
       - recoll-engine
-    volumes:
-      - type: bind
-        source: *recoll-data
-        target: /root
+    # Same filesystem as recoll-engine: the folder dropdown, Settings→Locations,
+    # and Open/Download/Preview all read /homes/* and /root inside this container.
+    volumes: *x-data-mounts
 
   # ========================================================================
   # IMMICH — Photo/Video Management with ML Search
