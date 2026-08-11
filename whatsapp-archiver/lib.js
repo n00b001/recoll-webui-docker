@@ -28,7 +28,7 @@ export async function renderQR(qr) {
 // ---------------------------------------------------------------------------
 
 /** Pinned fallback version (Baileys build profile format).
- *  Matches the pattern used by @whiskeysockets/baileys ^6.7.7.
+ *  Matches the pattern used by @whiskeysockets/baileys ^6.7.24.
  *  Baileys expects version as an array [major, minor, patch] for .join() calls.
  */
 export const PINNED_BAILEYS_VERSION = [2, 3000, 1043857760]
