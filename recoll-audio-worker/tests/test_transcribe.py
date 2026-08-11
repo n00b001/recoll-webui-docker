@@ -258,3 +258,60 @@ class TestTranscribeFile:
         assert (tmp_path / "output" / "clip.txt").read_text() == "transcript"
         # Moved out of CWD, not copied — no stray copy left behind
         assert not (Path.cwd() / "clip.txt").exists()
+
+
+# ---------------------------------------------------------------------------
+# Test: audio stream detection (video-only files)
+# ---------------------------------------------------------------------------
+class TestHasAudioStream:
+    def _run(self, monkeypatch, *, stdout: str, returncode: int = 0) -> bool:
+        """Run has_audio_stream with a fake ffprobe."""
+        def fake_ffprobe(cmd, **kwargs):
+            return subprocess.CompletedProcess(cmd, returncode, stdout=stdout, stderr="")
+
+        monkeypatch.setattr(transcribe.subprocess, "run", fake_ffprobe)
+        return transcribe.has_audio_stream(Path("/fake/video.webm"))
+
+    def test_has_audio(self, monkeypatch) -> None:
+        assert self._run(monkeypatch, stdout="audio") is True
+
+    def test_video_only_no_audio(self, monkeypatch) -> None:
+        # ffprobe prints nothing when there's no audio stream
+        assert self._run(monkeypatch, stdout="") is False
+
+    def test_ffprobe_error_no_audio(self, monkeypatch) -> None:
+        assert self._run(monkeypatch, stdout="", returncode=1) is False
+
+
+class TestProcessAudioFileSkip:
+    def test_video_only_skipped_and_marked(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """Video-only file: no transcode, no whisper, returns skipped=True."""
+        inp = tmp_path / "input"
+        inp.mkdir()
+        video = inp / "recording.webm"
+        video.write_bytes(b"fake webm")
+        out = tmp_path / "output"
+        out.mkdir()
+        model = tmp_path / "ggml-base.bin"
+        model.write_bytes(b"fake model")
+
+        # ffprobe reports no audio stream
+        def fake_ffprobe(cmd, **kwargs):
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        # Should never be called for a skipped file
+        def fail_if_called(cmd, **kwargs):
+            raise AssertionError("ffmpeg/whisper should not run on a skipped file")
+
+        monkeypatch.setattr(transcribe.subprocess, "run", fake_ffprobe)
+        monkeypatch.setattr(transcribe, "transcode_to_wav", fail_if_called)
+        monkeypatch.setattr(transcribe, "transcribe_file", fail_if_called)
+
+        txt_path, skipped = transcribe.process_audio_file(
+            video, model, inp, out, language="auto"
+        )
+
+        assert skipped is True
+        assert txt_path is None
