@@ -25,9 +25,19 @@ export IMAP_HOST_CHLOE_IMAP="${IMAP_HOST_CHLOE_IMAP:-mail.example.com}"
 export IMAP_PORT_CHLOE_IMAP="${IMAP_PORT_CHLOE_IMAP:-993}"
 export IMAP_USER_CHLOE_IMAP="${IMAP_USER_CHLOE_IMAP:-chloe@example.com}"
 
-# Render mbsync.rc from template using envsubst
+# Runtime synchronization: mirror /generated to /runtime (bind mount)
+# /runtime is the host bind-mount point; this ensures the host directory
+# becomes an exact copy of the image's generated assets on every startup.
+mkdir -p /runtime
+rsync -a --delete /generated/ /runtime/
+
+# Re-render mbsync.rc with runtime environment variables to /runtime
+# This ensures the latest environment variables are used
+envsubst < /templates/mbsyncrc.template > /runtime/mbsync.rc
+
+# The config is now at /runtime/mbsync.rc - create symlink in /config for s6-overlay
 mkdir -p /config
-envsubst < /etc/mbsyncrc.template > /config/mbsync.rc
+ln -sf /runtime/mbsync.rc /config/mbsync.rc
 
 # Hand off to the original s6-overlay entrypoint
 exec /init "$@"

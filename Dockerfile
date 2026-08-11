@@ -1,21 +1,34 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common=0.96.24.32.22 \
+    software-properties-common \
     && add-apt-repository universe \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        python=2.7.15~rc1-1 \
-        recoll=1.23.7-1 \
-        python-recoll=1.23.7-1 \
+        python3 \
+        python3-pip \
+        recoll \
+        python3-recoll \
+        rsync \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /recoll-webui
 
+# Create template and generated directories
+RUN mkdir -p /templates /generated
+
+# Copy webui application
 COPY recoll-webui /recoll-webui
+
+# No build-time templates for recoll-webui - it reads recoll.conf from shared mount
+# But we create the sync structure for consistency with the specification
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "python /recoll-webui/webui-standalone.py -a ${RECOLL_WEBUI_ADDR:-0.0.0.0} -p ${RECOLL_WEBUI_PORT:-8080}"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python3", "webui-standalone.py", "-a", "0.0.0.0", "-p", "8080"]

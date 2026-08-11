@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg=7:5.1.9-0+deb12u1 \
     python3=3.11.2-1+b1 \
     tini=0.19.0-1+b3 \
+    rsync \
     && ( apt-get install -y --no-install-recommends \
         build-essential=12.9 \
         ca-certificates=20230311+deb12u1 \
@@ -45,6 +46,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ) \
     && rm -rf /var/lib/apt/lists/*
 
+# Create template and generated directories
+RUN mkdir -p /templates /generated
+
 # Create models directory (model downloaded at runtime)
 RUN mkdir -p /models
 
@@ -52,5 +56,8 @@ WORKDIR /app
 
 COPY transcribe.py .
 
-ENTRYPOINT ["tini", "--"]
-CMD ["python3", "transcribe.py"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["tini", "--", "python3", "transcribe.py"]
