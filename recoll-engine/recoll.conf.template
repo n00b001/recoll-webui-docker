@@ -86,6 +86,15 @@ testmodifusemtime = 1
 noxattrfields = 1
 
 # ---------------------------------------------------------------------------
+# MULTITHREADING — 4C/8T (i7-6700K)
+# Per https://www.recoll.org/pages/idxthreads/threadingRecoll.html
+# thrQSizes = queue depths (2 = small buffer), thrTCounts = threads per stage
+# Stage 1: file conversion (PDF→text), Stage 2: term generation, Stage 3: Xapian update
+# Xapian is single-threaded so Stage 3 stays at 1.
+thrQSizes = 2 2 2
+thrTCounts = 4 2 1
+
+# ---------------------------------------------------------------------------
 # OCR — Tesseract
 # ---------------------------------------------------------------------------
 # Enables OCR fallback for PDFs and scanned documents.
