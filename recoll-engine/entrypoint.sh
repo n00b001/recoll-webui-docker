@@ -8,20 +8,23 @@ if [ -f /etc/environment ]; then
     set +a
 fi
 
-# Set defaults for all path variables
-export ALEX_HADDES_PATH="${ALEX_HADDES_PATH:-/homes/alex/hades}"
-export ALEX_PHONE_PATH="${ALEX_PHONE_PATH:-/homes/alex/phone}"
-export ALEX_GDRIVE_PATH="${ALEX_GDRIVE_PATH:-/homes/alex/gdrive}"
-export ALEX_GPHOTOS_PATH="${ALEX_GPHOTOS_PATH:-/homes/alex/gphotos}"
-export CHLOE_HOME_SYNC_PATH="${CHLOE_HOME_SYNC_PATH:-/homes/chloe/home}"
-export CHLOE_PHONE_PATH="${CHLOE_PHONE_PATH:-/homes/chloe/phone}"
-export CHLOE_GDRIVE_PATH="${CHLOE_GDRIVE_PATH:-/homes/chloe/gdrive}"
-export CHLOE_GPHOTOS_PATH="${CHLOE_GPHOTOS_PATH:-/homes/chloe/gphotos}"
-export MBSYNC_DATA_PATH="${MBSYNC_DATA_PATH:-/homes/mail}"
-export WHATSAPP_DATA_PATH="${WHATSAPP_DATA_PATH:-/homes/whatsapp}"
-export SMS_DATA_PATH="${SMS_DATA_PATH:-/homes/sms}"
+# Map the .env host paths to the FIXED container paths defined in docker-compose.yml
+# The docker-compose.yml mounts host paths (from .env) at these container paths.
+# recoll-webui's get_dirs() globs topdirs from recoll.conf, so we must use
+# container paths here, not the user's host paths from .env.
+export ALEX_HADDES_PATH="/homes/alex/hades"
+export ALEX_PHONE_PATH="/homes/alex/phone"
+export ALEX_GDRIVE_PATH="/homes/alex/gdrive"
+export ALEX_GPHOTOS_PATH="/homes/alex/gphotos"
+export CHLOE_HOME_SYNC_PATH="/homes/chloe/home"
+export CHLOE_PHONE_PATH="/homes/chloe/phone"
+export CHLOE_GDRIVE_PATH="/homes/chloe/gdrive"
+export CHLOE_GPHOTOS_PATH="/homes/chloe/gphotos"
+export MBSYNC_DATA_PATH="/homes/mail"
+export WHATSAPP_DATA_PATH="/homes/whatsapp"
+export SMS_DATA_PATH="/homes/sms"
 
-# Render recoll.conf from template (only substitute our known vars)
+# Render recoll.conf from template with container paths
 envsubst '${ALEX_HADDES_PATH} ${ALEX_PHONE_PATH} ${ALEX_GDRIVE_PATH} ${ALEX_GPHOTOS_PATH} \
 ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS_PATH} \
 ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
