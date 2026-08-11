@@ -28,6 +28,7 @@ RUN apt-get update && \
         mime-support=3.66 \
         gettext-base=0.21-4ubuntu4 \
         rsync=3.2.3-8ubuntu3 \
+        zstd=1.4.8+dfsg-3build1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
