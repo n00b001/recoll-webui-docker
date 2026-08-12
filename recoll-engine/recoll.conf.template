@@ -34,7 +34,7 @@ skippedNames = #* CVS Cache cache* .cache caughtspam tmp \
 # Don't index content for these suffixes (names still indexed)
 noContentSuffixes = .md5 .map .o .lib .dll .a .sys .exe .com \
     .mpp .mpt .vsd .img .img.gz .image .dat .bak .rdf .log .db \
-    .msf .pid ,v ~ #
+    .msf .pid ,v ~ # .apk
 
 # Skip common mount points
 skippedPaths = /media /tmp
