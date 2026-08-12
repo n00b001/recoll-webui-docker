@@ -47,7 +47,7 @@ COPY recoll_wrapper/ /usr/local/src/recoll_wrapper/
 RUN chmod +x /usr/local/src/recoll_wrapper/recollindex.py
 
 # Create a symlink so that `recollindex` is in PATH for the host's wrapper to exec into.
-ln -s /usr/local/src/recoll_wrapper/recollindex.py /usr/local/bin/recollindex
+RUN ln -s /usr/local/src/recoll_wrapper/recollindex.py /usr/local/bin/recollindex
 
 WORKDIR /data
 
