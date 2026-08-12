@@ -235,3 +235,4 @@ The standalone Immich on TrueNAS uses these separate paths:
 
 The current docker-compose.yml needs to be updated to mount these correctly.
 # CI test update 2026-08-08T13:00:05Z
+# Feature work
