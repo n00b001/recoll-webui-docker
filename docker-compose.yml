@@ -60,6 +60,13 @@ x-constants:
   # settings, and Open/Download/Preview all glob/open paths inside this
   # container. One anchor keeps the two services' mounts in lockstep.
   x-data-mounts: &x-data-mounts
+    # recoll_wrapper folder — host version is the single source of truth.
+    # Bind-mounted read-only so the container always uses the host's version.
+    # Container restarts re-apply the mount; host edits are never lost.
+    - type: bind
+      source: ${RECOLL_WRAPPER_HOST_PATH:-../recoll_wrapper/}
+      target: /usr/local/src/recoll_wrapper/
+      read_only: true
     # Recoll index and config (shared, engine writes, webui reads)
     - type: bind
       source: *recoll-data
