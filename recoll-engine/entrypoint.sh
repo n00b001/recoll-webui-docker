@@ -36,6 +36,10 @@ ${CHLOE_HOME_SYNC_PATH} ${CHLOE_PHONE_PATH} ${CHLOE_GDRIVE_PATH} ${CHLOE_GPHOTOS
 ${MBSYNC_DATA_PATH} ${WHATSAPP_DATA_PATH} ${SMS_DATA_PATH}' \
   < /etc/recoll.conf.template > /root/.recoll/recoll.conf
 
+# Copy recoll_wrapper to recoll config directory on every startup
+# This ensures the wrapper scripts are always available for indexing
+rsync -a --delete /opt/recoll_wrapper/ /root/.recoll/recoll_wrapper/
+
 # If recollindex is the command, run it with output to both stdout and log file
 if [[ "${1:-}" == "recollindex" ]]; then
     shift

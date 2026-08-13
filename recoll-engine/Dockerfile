@@ -42,9 +42,12 @@ RUN mkdir -p /tmp/libreoffice \
 
 # Copy template to /etc to avoid being hidden by the /root bind-mount
 # declared in docker-compose.yml.
-COPY recoll.conf.template /etc/recoll.conf.template
+COPY recoll-engine/recoll.conf.template /etc/recoll.conf.template
 
-COPY entrypoint.sh /entrypoint.sh
+# Copy recoll_wrapper to /opt/recoll_wrapper for startup copy to config dir
+COPY recoll_wrapper /opt/recoll_wrapper
+
+COPY recoll-engine/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /data
