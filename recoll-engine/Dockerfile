@@ -31,7 +31,7 @@ RUN apt-get update && \
         zstd \
         aspell \
         aspell-en \
-        libpst-tools \
+        pff-tools \
         ghostscript \
         texlive-extra-utils \
     && rm -rf /var/lib/apt/lists/*
