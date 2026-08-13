@@ -34,6 +34,7 @@ RUN apt-get update && \
         pff-tools=20180714-3build1 \
         ghostscript=9.55.0~dfsg1-0ubuntu5.13 \
         texlive-extra-utils=2021.20220204-1 \
+        rsync \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
@@ -42,12 +43,12 @@ RUN mkdir -p /tmp/libreoffice \
 
 # Copy template to /etc to avoid being hidden by the /root bind-mount
 # declared in docker-compose.yml.
-COPY recoll-engine/recoll.conf.template /etc/recoll.conf.template
+COPY recoll.conf.template /etc/recoll.conf.template
 
 # Copy recoll_wrapper to /opt/recoll_wrapper for startup copy to config dir
-COPY recoll_wrapper /opt/recoll_wrapper
+COPY ../recoll_wrapper /opt/recoll_wrapper
 
-COPY recoll-engine/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /data
