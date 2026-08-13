@@ -34,7 +34,7 @@ RUN apt-get update && \
         pff-tools=20180714-3build1 \
         ghostscript=9.55.0~dfsg1-0ubuntu5.13 \
         texlive-extra-utils=2021.20220204-1 \
-        rsync=3.2.7-0ubuntu0.22.04.7 \
+        rsync=3.4.1+ds1-7ubuntu0.3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
