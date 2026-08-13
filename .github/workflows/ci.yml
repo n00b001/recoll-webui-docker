@@ -220,7 +220,7 @@ jobs:
             context: .
 
           - image: recoll-engine
-            context: ./recoll-engine
+            context: .
 
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
