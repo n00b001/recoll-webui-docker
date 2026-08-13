@@ -81,6 +81,23 @@ def pretty_duration(seconds: float) -> str:
     return f"{h:02d}h {m:02d}m {s:02d}s"
 
 
+def _print_cmd_output(
+    _label: str, result: subprocess.CompletedProcess[str], c: Console
+) -> None:
+    """Print command output, handling failures gracefully.
+
+    On TrueNAS, some host utilities are missing or return
+    ``Function not implemented``. This helper prints stdout on success
+    and a generic (unavailable) placeholder on failure instead of
+    dumping stderr as data.
+    """
+    if result.returncode == 0 and result.stdout.strip():
+        for line in result.stdout.strip().splitlines():
+            c.print(f"  {line}")
+    elif result.returncode != 0:
+        c.print("  [dim](unavailable)[/]")
+
+
 def _print_section(title: str) -> None:
     _get_console().print(Panel.fit(title, border_style="bold yellow", padding=(0, 1)))
 
@@ -161,7 +178,7 @@ def container_diagnostics(label: str) -> None:
         c.print("  [dim](none)[/]")
 
 
-def storage_diagnostics(label: str) -> None:
+def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
     """Print ZFS, disk, and kernel-level storage information.
 
     Runs on the TrueNAS host (not inside the container).
@@ -179,10 +196,7 @@ def storage_diagnostics(label: str) -> None:
 
     # ZFS pools ----------------------------------------------------------
     c.print("ZFS pools:")
-    result = run_cmd("zpool", "status")
-    output = result.stdout or result.stderr
-    for line in output.strip().splitlines():
-        c.print(f"  {line}")
+    _print_cmd_output("zpool status", run_cmd("zpool", "status"), c)
 
     # Selected ZFS datasets (only the ones we care about) ----------------
     c.print("Selected ZFS datasets:")
@@ -200,7 +214,7 @@ def storage_diagnostics(label: str) -> None:
             if len(parts) >= 5 and parts[0] in DATASETS_OF_INTEREST:
                 c.print(f"  {' '.join(f'{p:<16}' for p in parts[:4])} {parts[4]}")
     else:
-        c.print(f"  [red]zfs list failed: {result.stderr.strip()}[/]")
+        c.print("  [dim](unavailable)[/]")
 
     # ZFS ARC cache stats ------------------------------------------------
     c.print("ZFS ARC:")
@@ -226,9 +240,7 @@ def storage_diagnostics(label: str) -> None:
     # Filesystem usage ---------------------------------------------------
     c.print("Filesystem usage:")
     dataset_mounts = {f"/mnt/{ds.split('/')[0]}/share" for ds in DATASETS_OF_INTEREST}
-    result = run_cmd("df", "-h", *dataset_mounts)
-    for line in (result.stdout or result.stderr).strip().splitlines():
-        c.print(f"  {line}")
+    _print_cmd_output("df", run_cmd("df", "-h", *dataset_mounts), c)
 
     # Block devices ------------------------------------------------------
     c.print("Block devices:")
@@ -237,8 +249,11 @@ def storage_diagnostics(label: str) -> None:
         "-o",
         "NAME,SIZE,MODEL,SERIAL,FSTYPE,MOUNTPOINT",
     )
-    for line in result.stdout.strip().splitlines():
-        c.print(f"  {line}")
+    if result.returncode == 0 and result.stdout.strip():
+        for line in result.stdout.strip().splitlines():
+            c.print(f"  {line}")
+    else:
+        c.print("  [dim](unavailable)[/]")
 
     # PCI storage adapters -----------------------------------------------
     c.print("PCI storage adapters:")
@@ -256,9 +271,7 @@ def storage_diagnostics(label: str) -> None:
 
     # SMART devices ------------------------------------------------------
     c.print("SMART devices:")
-    result = run_cmd("smartctl", "--scan-open")
-    for line in (result.stdout or result.stderr).strip().splitlines():
-        c.print(f"  {line}")
+    _print_cmd_output("smartctl", run_cmd("smartctl", "--scan-open"), c)
 
     # Recent kernel storage messages -------------------------------------
     c.print("Recent kernel storage messages:")
@@ -268,8 +281,11 @@ def storage_diagnostics(label: str) -> None:
         'dmesg | grep -Ei "ata|ahci|sas|scsi|usb|reset|timeout|error|failed|link|crc" '
         "| tail -100",
     )
-    for line in (result.stdout or result.stderr).strip().splitlines():
-        c.print(f"  [dim]{line}[/]")
+    if result.returncode == 0 and result.stdout.strip():
+        for line in result.stdout.strip().splitlines():
+            c.print(f"  [dim]{line}[/]")
+    else:
+        c.print("  [dim](unavailable)[/]")
 
 
 def print_configuration() -> None:
