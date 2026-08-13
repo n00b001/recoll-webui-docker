@@ -14,6 +14,7 @@ RUN apt-get update && \
         libreoffice-impress=1:7.3.7-0ubuntu0.22.04.12 \
         poppler-utils=22.02.0-2ubuntu0.13 \
         python3-mutagen=1.45.1-2 \
+        python3-lxml=6.0.2-1build1 \
         tesseract-ocr=4.1.1-2.1build1 \
         tesseract-ocr-eng=1:4.00~git30-7274cfa-1.1 \
         libimage-exiftool-perl=12.40+dfsg-1 \
@@ -28,6 +29,11 @@ RUN apt-get update && \
         mime-support=3.66 \
         gettext-base=0.21-4ubuntu4 \
         zstd=1.4.8+dfsg-3build1 \
+        aspell=0.60.8.2-3 \
+        aspell-en=0.60-2 \
+        libpst-tools=0.6.75-1 \
+        ghostscript=10.06.0~dfsg-3ubuntu1 \
+        texlive-extra-utils=2025.20260124-1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \

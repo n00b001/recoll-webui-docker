@@ -169,6 +169,12 @@ skippedNames+ = .cache *.sqlite *.wal *.shm
 [${CHLOE_PHONE_PATH}]
 skippedNames+ = .cache *.sqlite *.wal *.shm
 
+# Wine prefix: skip .wine directories entirely — dosdevices junctions
+# create circular Z: drive mappings back to the host, producing duplicate
+# indexing and mime-type detection failures.
+[${CHLOE_HOME_SYNC_PATH}]
+skippedNames+ = .wine
+
 # Google Photos: skip duplicate sidecar files
 [${ALEX_GPHOTOS_PATH}]
 skippedNames+ = .geo.json .metadata

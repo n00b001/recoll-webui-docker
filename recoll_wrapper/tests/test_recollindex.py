@@ -192,7 +192,7 @@ def test_container_diagnostics_no_processes() -> None:
     try:
         recollindex.console = fake_console
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args, **_kwargs):
             return subprocess.CompletedProcess(args, 0, "\n", "")
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
@@ -211,7 +211,7 @@ def test_container_diagnostics_with_stderr() -> None:
     try:
         recollindex.console = fake_console
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args, **_kwargs):
             if "recollindex -h" in args:
                 return subprocess.CompletedProcess(args, 0, "v1\n", "warning\n")
             return subprocess.CompletedProcess(args, 0, "\n", "")
@@ -301,7 +301,7 @@ def test_storage_diagnostics_zfs_failed() -> None:
     try:
         recollindex.console = fake_console
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args, **_kwargs):
             if args[0] == "zfs":
                 return subprocess.CompletedProcess(args, 1, "", "error\n")
             return subprocess.CompletedProcess(args, 0, "data\n", "")
@@ -323,7 +323,7 @@ def test_storage_diagnostics_lspci_unavailable() -> None:
     try:
         recollindex.console = fake_console
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args, **_kwargs):
             if args[0] == "lspci":
                 return subprocess.CompletedProcess(args, 1, "", "")
             return subprocess.CompletedProcess(args, 0, "data\n", "")
@@ -345,7 +345,7 @@ def test_storage_diagnostics_pci_matching() -> None:
     try:
         recollindex.console = fake_console
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args, **_kwargs):
             if args[0] == "lspci":
                 return subprocess.CompletedProcess(
                     args, 0,
@@ -871,5 +871,72 @@ def test_container_diagnostics_recoll_version_stderr() -> None:
                 recollindex.container_diagnostics("Test")
                 calls = [str(c) for c in fake_console.print.call_args_list]
                 assert any("warning" in c for c in calls)
+    finally:
+        recollindex.console = orig
+
+
+# ---------------------------------------------------------------------------
+# _print_cmd_output — graceful failure handling
+# ---------------------------------------------------------------------------
+
+
+def test_print_cmd_output_success() -> None:
+    """_print_cmd_output prints stdout on success."""
+    import recollindex
+
+    fake_console = MagicMock()
+    result = subprocess.CompletedProcess([], 0, "line1\nline2\n", "")
+    recollindex._print_cmd_output("test", result, fake_console)
+    assert fake_console.print.call_count == 2
+
+
+def test_print_cmd_output_failure() -> None:
+    """_print_cmd_output prints dim unavailable on failure."""
+    import recollindex
+
+    fake_console = MagicMock()
+    result = subprocess.CompletedProcess([], 1, "", "Function not implemented")
+    recollindex._print_cmd_output("test", result, fake_console)
+    fake_console.print.assert_called_once()
+    call = fake_console.print.call_args[0][0]
+    assert "unavailable" in call
+    # Should NOT leak the raw stderr message
+    assert "Function not implemented" not in call
+
+
+def test_print_cmd_output_empty_success() -> None:
+    """_print_cmd_output prints nothing on success with empty output."""
+    import recollindex
+
+    fake_console = MagicMock()
+    result = subprocess.CompletedProcess([], 0, "", "")
+    recollindex._print_cmd_output("test", result, fake_console)
+    fake_console.print.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# storage_diagnostics — failing host utilities (TrueNAS)
+# ---------------------------------------------------------------------------
+
+
+def test_storage_diagnostics_all_commands_fail() -> None:
+    """storage_diagnostics handles every command failing (TrueNAS BusyBox env)."""
+    import recollindex
+
+    fake_console = MagicMock()
+    orig = recollindex.console
+    try:
+        recollindex.console = fake_console
+
+        def side_effect(*args, **_kwargs):
+            return subprocess.CompletedProcess(args, 1, "", "Function not implemented")
+
+        with patch.object(recollindex, "run_cmd", side_effect=side_effect):
+            with patch.object(Path, "exists", return_value=False):
+                with patch.object(recollindex, "_get_console", return_value=fake_console):
+                    recollindex.storage_diagnostics("Test")
+        # Should NOT have printed any "Function not implemented" lines
+        calls = [str(c) for c in fake_console.print.call_args_list]
+        assert not any("Function not implemented" in c for c in calls)
     finally:
         recollindex.console = orig
