@@ -2,6 +2,9 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Cache-busting arg: changes when package list changes, invalidating subsequent layers
+ARG PACKAGE_HASH=unknown
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common=0.99.22.9 && \
     add-apt-repository -y universe && \
