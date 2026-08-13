@@ -3,37 +3,37 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
+    apt-get install -y --no-install-recommends software-properties-common=0.99.22.9 && \
     add-apt-repository -y universe && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        recoll \
-        libreoffice \
-        libreoffice-writer \
-        libreoffice-calc \
-        libreoffice-impress \
-        poppler-utils \
-        python3-mutagen \
-        python3-lxml \
-        tesseract-ocr \
-        tesseract-ocr-eng \
-        libimage-exiftool-perl \
-        ffmpeg \
-        catdoc \
-        antiword \
-        unrtf \
-        unzip \
-        xdg-utils \
-        p7zip-full \
-        file \
-        mime-support \
-        gettext-base \
-        zstd \
-        aspell \
-        aspell-en \
-        pff-tools \
-        ghostscript \
-        texlive-extra-utils \
+        recoll=1.31.6-1ubuntu1 \
+        libreoffice=1:7.3.7-0ubuntu0.22.04.12 \
+        libreoffice-writer=1:7.3.7-0ubuntu0.22.04.12 \
+        libreoffice-calc=1:7.3.7-0ubuntu0.22.04.12 \
+        libreoffice-impress=1:7.3.7-0ubuntu0.22.04.12 \
+        poppler-utils=22.02.0-2ubuntu0.13 \
+        python3-mutagen=1.45.1-2 \
+        python3-lxml=6.0.2-1build1 \
+        tesseract-ocr=4.1.1-2.1build1 \
+        tesseract-ocr-eng=1:4.00~git30-7274cfa-1.1 \
+        libimage-exiftool-perl=12.40+dfsg-1 \
+        ffmpeg=7:4.4.2-0ubuntu0.22.04.1 \
+        catdoc=1:0.95-5 \
+        antiword=0.37-16 \
+        unrtf=0.21.10-clean-1 \
+        unzip=6.0-26ubuntu3.2 \
+        xdg-utils=1.1.3-4.1ubuntu3~22.04.1 \
+        p7zip-full=16.02+dfsg-8 \
+        file=1:5.41-3ubuntu0.1 \
+        mime-support=3.66 \
+        gettext-base=0.21-4ubuntu4 \
+        zstd=1.4.8+dfsg-3build1 \
+        aspell=0.60.8-4build1 \
+        aspell-en=2020.12.07-0-1.1build1 \
+        pff-tools=20231205-1build1 \
+        ghostscript=9.55.0~dfsg1-0ubuntu5.13 \
+        texlive-extra-utils=2025.20260124-1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/libreoffice \
