@@ -218,9 +218,11 @@ jobs:
         include:
           - image: recoll-webui
             context: .
+            dockerfile: Dockerfile
 
           - image: recoll-engine
             context: .
+            dockerfile: recoll-engine/Dockerfile
 
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
@@ -272,6 +274,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
+          dockerfile: ${{ matrix.dockerfile }}
           push: false
           # read cache, don't write: PR-branch cache writes are invisible to main,
           # so they only compete with main's cache for the 10 GB budget
@@ -289,6 +292,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
+          dockerfile: ${{ matrix.dockerfile }}
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
