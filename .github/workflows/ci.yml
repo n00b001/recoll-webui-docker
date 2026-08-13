@@ -258,6 +258,15 @@ jobs:
       # =====================
       # PR: validate build, reuse main's per-image cache
       # =====================
+      - name: Compute package hash (cache busting for recoll-engine)
+        if: matrix.image == 'recoll-engine'
+        id: pkg-hash
+        run: |
+          # Extract package list from RUN apt-get install line in Dockerfile
+          # Hash it to create a cache-busting arg
+          PKG_LINE=$(grep -A 30 'apt-get install' recoll-engine/Dockerfile | head -31 | tail -30 | sed 's/^[[:space:]]*//' | sed 's/\\$//' | tr '\n' ' ')
+          echo "pkg_hash=$(echo -n "$PKG_LINE" | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
       - name: Build image (PR validation)
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -267,6 +276,8 @@ jobs:
           # read cache, don't write: PR-branch cache writes are invisible to main,
           # so they only compete with main's cache for the 10 GB budget
           cache-from: type=gha,scope=${{ matrix.image }}
+          build-args: |
+            PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
 
       # =====================
       # Push to main: build + publish, reuse previous main build's per-image cache
@@ -285,3 +296,5 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          build-args: |
+            PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
