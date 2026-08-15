@@ -109,31 +109,37 @@ def test_module_console_initialised() -> None:
 
 
 def test_print_section() -> None:
-    """_print_section prints a panel."""
+    """_print_section logs with info level."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         recollindex._print_section("Test Section")
-        fake_console.print.assert_called_once()
+        fake_logger.info.assert_called_once()
+        call_args = fake_logger.info.call_args[0]
+        # Check that the title is passed as the second argument (format string, then value)
+        assert call_args[1] == "Test Section"
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_subsection() -> None:
-    """_print_subsection prints a rule."""
+    """_print_subsection logs with info level."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         recollindex._print_subsection("Test Sub")
-        fake_console.rule.assert_called_once()
+        fake_logger.info.assert_called_once()
+        call_args = fake_logger.info.call_args[0]
+        # Check that the title is passed as the second argument (format string, then value)
+        assert call_args[1] == "Test Sub"
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 # ---------------------------------------------------------------------------
@@ -339,37 +345,38 @@ def test_print_configuration_missing() -> None:
     """print_configuration handles missing config file."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         with patch.object(Path, "exists", return_value=False):
             recollindex.print_configuration()
-            calls = [str(c) for c in fake_console.print.call_args_list]
-            assert any("Missing config" in c for c in calls)
+            fake_logger.error.assert_called_once()
+            call_args = fake_logger.error.call_args[0]
+            assert "Missing config" in call_args[0]
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_configuration_success() -> None:
-    """print_configuration parses and prints config values."""
+    """print_configuration parses and logs config values."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         config_content = (
             "# comment\n" "topdirs = /path1\n" "loglevel = 3\n" "other = value\n"
         )
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", return_value=config_content):
                 recollindex.print_configuration()
-                calls = [str(c) for c in fake_console.print.call_args_list]
+                calls = [str(c) for c in fake_logger.info.call_args_list]
                 assert any("topdirs" in c for c in calls)
                 assert any("loglevel" in c for c in calls)
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_configuration_os_error() -> None:
@@ -809,15 +816,15 @@ def test_log_file_constant_uses_base_path() -> None:
 
 
 def test_container_diagnostics_recoll_version_stderr() -> None:
-    """container_diagnostics prints stderr when recoll version command has stderr."""
+    """container_diagnostics logs stderr when recoll version command has stderr."""
     import subprocess
 
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         container = recollindex.CONTAINER
 
         def side_effect(*args, **_kwargs):
@@ -833,10 +840,10 @@ def test_container_diagnostics_recoll_version_stderr() -> None:
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
             recollindex.container_diagnostics("Test")
-            calls = [str(c) for c in fake_console.print.call_args_list]
+            calls = [str(c) for c in fake_logger.debug.call_args_list]
             assert any("warning" in c for c in calls)
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 # ---------------------------------------------------------------------------
@@ -845,24 +852,24 @@ def test_container_diagnostics_recoll_version_stderr() -> None:
 
 
 def test_print_cmd_output_success() -> None:
-    """_print_cmd_output prints stdout on success."""
+    """_print_cmd_output logs stdout on success."""
     import recollindex
 
-    fake_console = MagicMock()
+    fake_logger = MagicMock()
     result = subprocess.CompletedProcess([], 0, "line1\nline2\n", "")
-    recollindex._print_cmd_output("test", result, fake_console)
-    assert fake_console.print.call_count == 2
+    recollindex._print_cmd_output("test", result, fake_logger)
+    assert fake_logger.info.call_count == 2
 
 
 def test_print_cmd_output_failure() -> None:
-    """_print_cmd_output prints dim unavailable on failure."""
+    """_print_cmd_output logs debug unavailable on failure."""
     import recollindex
 
-    fake_console = MagicMock()
+    fake_logger = MagicMock()
     result = subprocess.CompletedProcess([], 1, "", "Function not implemented")
-    recollindex._print_cmd_output("test", result, fake_console)
-    fake_console.print.assert_called_once()
-    call = fake_console.print.call_args[0][0]
+    recollindex._print_cmd_output("test", result, fake_logger)
+    fake_logger.debug.assert_called_once()
+    call = fake_logger.debug.call_args[0][0]
     assert "unavailable" in call
     # Should NOT leak the raw stderr message
     assert "Function not implemented" not in call
