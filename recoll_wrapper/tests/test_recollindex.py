@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def test_module_imports() -> None:
     """Module imports without error."""
     import recollindex  # noqa: F401
+
     assert True
 
 
@@ -149,9 +150,7 @@ def test_container_diagnostics() -> None:
     try:
         recollindex.console = fake_console
 
-        mock_result = subprocess.CompletedProcess(
-            [], 0, "name\tstatus\timage\n", ""
-        )
+        mock_result = subprocess.CompletedProcess([], 0, "name\tstatus\timage\n", "")
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
             recollindex.container_diagnostics("Test")
     finally:
@@ -316,10 +315,11 @@ def test_storage_diagnostics_pci_matching() -> None:
         def side_effect(*args, **_kwargs):
             if args[0] == "lspci":
                 return subprocess.CompletedProcess(
-                    args, 0,
+                    args,
+                    0,
                     "00:1f.2 SATA controller: Intel\n"
                     "01:00.0 VGA compatible device: NVIDIA\n",
-                    ""
+                    "",
                 )
             return subprocess.CompletedProcess(args, 0, "data\n", "")
 
@@ -360,10 +360,7 @@ def test_print_configuration_success() -> None:
     try:
         recollindex.console = fake_console
         config_content = (
-            "# comment\n"
-            'topdirs = /path1\n'
-            'loglevel = 3\n'
-            'other = value\n'
+            "# comment\n" "topdirs = /path1\n" "loglevel = 3\n" "other = value\n"
         )
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", return_value=config_content):
@@ -593,11 +590,17 @@ def test_main_incremental_success() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(0)
 
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "check_existing_indexers", return_value=False):
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
                             with patch("subprocess.Popen", return_value=mock_proc):
                                 with patch("time.sleep"):
                                     result = recollindex.main()
@@ -614,11 +617,17 @@ def test_main_aborts_on_existing_indexer() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "check_existing_indexers", return_value=True):
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=True
+                        ):
                             result = recollindex.main()
                             assert result == 2
     finally:
@@ -633,13 +642,23 @@ def test_main_rebuild_cancelled() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "check_existing_indexers", return_value=False):
-                            with patch.object(recollindex, "confirm_rebuild", return_value=False):
-                                with patch.object(sys, "argv", ["recollindex.py", "--rebuild"]):
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
+                            with patch.object(
+                                recollindex, "confirm_rebuild", return_value=False
+                            ):
+                                with patch.object(
+                                    sys, "argv", ["recollindex.py", "--rebuild"]
+                                ):
                                     result = recollindex.main()
                                     assert result == 0
     finally:
@@ -656,15 +675,25 @@ def test_main_rebuild_success() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(0)
 
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "check_existing_indexers", return_value=False):
-                            with patch.object(recollindex, "confirm_rebuild", return_value=True):
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
+                            with patch.object(
+                                recollindex, "confirm_rebuild", return_value=True
+                            ):
                                 with patch("subprocess.Popen", return_value=mock_proc):
                                     with patch("time.sleep"):
-                                        with patch.object(sys, "argv", ["recollindex.py", "--rebuild"]):
+                                        with patch.object(
+                                            sys, "argv", ["recollindex.py", "--rebuild"]
+                                        ):
                                             result = recollindex.main()
                                             assert result == 0
     finally:
@@ -728,7 +757,9 @@ def test_locked_main_exception_handling() -> None:
 
         try:
             with patch.object(recollindex, "LOCK_FILE", tmp_path):
-                with patch.object(recollindex, "main", side_effect=RuntimeError("boom")):
+                with patch.object(
+                    recollindex, "main", side_effect=RuntimeError("boom")
+                ):
                     result = recollindex._locked_main()
                     assert result == 1
         finally:
@@ -790,7 +821,13 @@ def test_container_diagnostics_recoll_version_stderr() -> None:
         container = recollindex.CONTAINER
 
         def side_effect(*args, **_kwargs):
-            if len(args) >= 4 and args[0] == "docker" and args[1] == "exec" and args[2] == container and args[3] == "sh":
+            if (
+                len(args) >= 4
+                and args[0] == "docker"
+                and args[1] == "exec"
+                and args[2] == container
+                and args[3] == "sh"
+            ):
                 return subprocess.CompletedProcess(args, 0, "v1\n", "warning\n")
             return subprocess.CompletedProcess(args, 0, "data\n", "")
 

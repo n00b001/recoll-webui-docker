@@ -132,8 +132,7 @@ def container_diagnostics(label: str) -> None:
     _print_subsection(f"{label}: Container diagnostics")
 
     # Container status table
-    c = console
-    c.print("Container status:")
+    console.print("Container status:")
     result = run_cmd(
         "docker",
         "ps",
@@ -143,7 +142,7 @@ def container_diagnostics(label: str) -> None:
         "table {{.Names}}\t{{.Status}}\t{{.Image}}",
     )
     for line in result.stdout.strip().splitlines():
-        c.print(f"  {line}")
+        console.print(f"  {line}")
 
     # Container image
     result = run_cmd(
@@ -153,44 +152,49 @@ def container_diagnostics(label: str) -> None:
         "--format",
         "{{.Config.Image}}",
     )
-    c.print(f"Container image: [cyan]{result.stdout.strip()}[/]")
+    console.print(f"Container image: [cyan]{result.stdout.strip()}[/]")
 
     # Recoll version
-    result = run_cmd("docker", "exec", CONTAINER,
-                     "sh", "-c", "recollindex -h 2>&1 | head -3")
-    c.print("Recoll version:")
+    result = run_cmd(
+        "docker", "exec", CONTAINER, "sh", "-c", "recollindex -h 2>&1 | head -3"
+    )
+    console.print("Recoll version:")
     for line in result.stdout.strip().splitlines():
-        c.print(f"  {line}")
+        console.print(f"  {line}")
     if result.stderr.strip():
-        c.print(f"  [dim]{result.stderr.strip()}[/]")
+        console.print(f"  [dim]{result.stderr.strip()}[/]")
 
     # Index size
-    result = run_cmd("docker", "exec", CONTAINER,
-                     "sh", "-c", f"du -sh {INDEX_PATH} 2>/dev/null")
+    result = run_cmd(
+        "docker", "exec", CONTAINER, "sh", "-c", f"du -sh {INDEX_PATH} 2>/dev/null"
+    )
     for line in result.stdout.strip().splitlines():
-        c.print(f"Index size: [cyan]{line.strip()}[/]")
+        console.print(f"Index size: [cyan]{line.strip()}[/]")
 
     # Container resources (CPU, memory, network, I/O)
-    c.print("Container resources:")
+    console.print("Container resources:")
     result = run_cmd("docker", "stats", CONTAINER, "--no-stream")
     for line in result.stdout.strip().splitlines():
-        c.print(f"  {line}")
+        console.print(f"  {line}")
 
     # Recoll processes inside container
-    c.print("Existing Recoll processes:")
+    console.print("Existing Recoll processes:")
     result = run_cmd(
-        "docker", "exec", CONTAINER, "sh", "-c",
-        "ps -eo pid,comm,args | grep -E 'recoll(index)?|rcl' "
-        "| grep -v grep",
+        "docker",
+        "exec",
+        CONTAINER,
+        "sh",
+        "-c",
+        "ps -eo pid,comm,args | grep -E 'recoll(index)?|rcl' " "| grep -v grep",
     )
     if result.stdout.strip():
         for line in result.stdout.strip().splitlines():
-            c.print(f"  {line}")
+            console.print(f"  {line}")
     else:
-        c.print("  [dim](none)[/]")
+        console.print("  [dim](none)[/]")
 
 
-def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
+def storage_diagnostics(label: str) -> None:
     """Print ZFS, disk, and kernel-level storage information.
 
     Runs on the TrueNAS host (not inside the container).
@@ -200,18 +204,17 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
     """
     _print_subsection(f"{label}: Storage diagnostics")
 
-    c = console
-    c.print(
+    console.print(
         "[dim]NOTE: zpool/zfs diagnostics run on the TrueNAS host,[/]"
         " not inside the Recoll container."
     )
 
     # ZFS pools ----------------------------------------------------------
-    c.print("ZFS pools:")
-    _print_cmd_output("zpool status", run_cmd("zpool", "status"), c)
+    console.print("ZFS pools:")
+    _print_cmd_output("zpool status", run_cmd("zpool", "status"), console)
 
     # Selected ZFS datasets (only the ones we care about) ----------------
-    c.print("Selected ZFS datasets:")
+    console.print("Selected ZFS datasets:")
     result = run_cmd(
         "zfs",
         "list",
@@ -220,16 +223,18 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
         "name,used,available,referenced,mountpoint",
     )
     if result.returncode == 0:
-        c.print("  NAME                          USED    AVAIL   REFER   MOUNTPOINT")
+        console.print(
+            "  NAME                          USED    AVAIL   REFER   MOUNTPOINT"
+        )
         for line in result.stdout.strip().splitlines():
             parts = line.split("\t")
             if len(parts) >= 5 and parts[0] in DATASETS_OF_INTEREST:
-                c.print(f"  {' '.join(f'{p:<16}' for p in parts[:4])} {parts[4]}")
+                console.print(f"  {' '.join(f'{p:<16}' for p in parts[:4])} {parts[4]}")
     else:
-        c.print("  [dim](unavailable)[/]")
+        console.print("  [dim](unavailable)[/]")
 
     # ZFS ARC cache stats ------------------------------------------------
-    c.print("ZFS ARC:")
+    console.print("ZFS ARC:")
     arc_path = Path("/proc/spl/kstat/zfs/arcstats")
     if arc_path.exists():
         try:
@@ -243,19 +248,19 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
                     "hits",
                     "misses",
                 ):
-                    c.print(f"  {parts[1]:<12} {parts[2]}")
+                    console.print(f"  {parts[1]:<12} {parts[2]}")
         except OSError:
-            c.print("  [red]Could not read ARC stats[/]")
+            console.print("  [red]Could not read ARC stats[/]")
     else:
-        c.print("  [yellow]ARC stats unavailable[/]")
+        console.print("  [yellow]ARC stats unavailable[/]")
 
     # Filesystem usage ---------------------------------------------------
-    c.print("Filesystem usage:")
+    console.print("Filesystem usage:")
     dataset_mounts = {f"/mnt/{ds.split('/')[0]}/share" for ds in DATASETS_OF_INTEREST}
-    _print_cmd_output("df", run_cmd("df", "-h", *dataset_mounts), c)
+    _print_cmd_output("df", run_cmd("df", "-h", *dataset_mounts), console)
 
     # Block devices ------------------------------------------------------
-    c.print("Block devices:")
+    console.print("Block devices:")
     result = run_cmd(
         "lsblk",
         "-o",
@@ -263,12 +268,12 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
     )
     if result.returncode == 0 and result.stdout.strip():
         for line in result.stdout.strip().splitlines():
-            c.print(f"  {line}")
+            console.print(f"  {line}")
     else:
-        c.print("  [dim](unavailable)[/]")
+        console.print("  [dim](unavailable)[/]")
 
     # PCI storage adapters -----------------------------------------------
-    c.print("PCI storage adapters:")
+    console.print("PCI storage adapters:")
     result = run_cmd("lspci")
     if result.returncode == 0:
         for line in result.stdout.strip().splitlines():
@@ -277,16 +282,16 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
                 line,
                 re.IGNORECASE,
             ):
-                c.print(f"  {line}")
+                console.print(f"  {line}")
     else:
-        c.print("  [dim]lspci not available[/]")
+        console.print("  [dim]lspci not available[/]")
 
     # SMART devices ------------------------------------------------------
-    c.print("SMART devices:")
-    _print_cmd_output("smartctl", run_cmd("smartctl", "--scan-open"), c)
+    console.print("SMART devices:")
+    _print_cmd_output("smartctl", run_cmd("smartctl", "--scan-open"), console)
 
     # Recent kernel storage messages -------------------------------------
-    c.print("Recent kernel storage messages:")
+    console.print("Recent kernel storage messages:")
     result = run_cmd(
         "sh",
         "-c",
@@ -295,9 +300,9 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
     )
     if result.returncode == 0 and result.stdout.strip():
         for line in result.stdout.strip().splitlines():
-            c.print(f"  [dim]{line}[/]")
+            console.print(f"  [dim]{line}[/]")
     else:
-        c.print("  [dim](unavailable)[/]")
+        console.print("  [dim](unavailable)[/]")
 
 
 def print_configuration() -> None:
@@ -338,19 +343,22 @@ def check_existing_indexers() -> bool:
         True if an indexer is already running (i.e., we should abort).
     """
     result = run_cmd(
-        "docker", "exec", CONTAINER,
-        "sh", "-c", "pgrep -x recollindex | wc -l",
+        "docker",
+        "exec",
+        CONTAINER,
+        "sh",
+        "-c",
+        "pgrep -x recollindex | wc -l",
     )
     count_text = result.stdout.strip()
     count = int(count_text) if count_text.isdigit() else 0
 
-    c = console
-    c.print("Checking existing Recoll indexers...")
-    c.print(f"Existing recollindex processes: [bold]{count}[/]")
+    console.print("Checking existing Recoll indexers...")
+    console.print(f"Existing recollindex processes: [bold]{count}[/]")
 
     if count > 0:
-        c.print("[red]ERROR: recollindex is already running.[/]")
-        c.print("[red]Refusing to start another indexer.[/]")
+        console.print("[red]ERROR: recollindex is already running.[/]")
+        console.print("[red]Refusing to start another indexer.[/]")
         return True
     return False
 
@@ -362,17 +370,16 @@ def check_existing_indexers() -> bool:
 
 def confirm_rebuild() -> bool:
     """Ask the user for y/N confirmation before a full rebuild."""
-    c = console
-    c.print(
+    console.print(
         "\n[bold red]WARNING:[/] This will completely rebuild the Recoll index."
     )
-    c.print("[yellow]This may take a long time.[/]\n")
+    console.print("[yellow]This may take a long time.[/]\n")
 
-    answer = c.input("Continue? [y/N] ").strip().lower()
+    answer = console.input("Continue? [y/N] ").strip().lower()
     if answer in ("y", "yes"):
-        c.print("[green]Starting full rebuild...\n[/]")
+        console.print("[green]Starting full rebuild...\n[/]")
         return True
-    c.print("[yellow]Cancelled.\n[/]")
+    console.print("[yellow]Cancelled.\n[/]")
     return False
 
 
@@ -383,10 +390,9 @@ def confirm_rebuild() -> bool:
 
 def run_indexing(mode: str, command: list[str]) -> int:
     """Run recollindex inside the container with a live progress spinner."""
-    c = console
     _print_subsection("Indexing")
-    c.print(f"Mode: [bold magenta]{mode}[/]")
-    c.print(f"Command: [cyan]{' '.join(command)}[/]\n")
+    console.print(f"Mode: [bold magenta]{mode}[/]")
+    console.print(f"Command: [cyan]{' '.join(command)}[/]\n")
 
     full_cmd = [
         "docker",
@@ -403,7 +409,7 @@ def run_indexing(mode: str, command: list[str]) -> int:
         SpinnerColumn(spinner_name="arrow"),
         TextColumn("[bold cyan]{task.description}[/]"),
         TimeElapsedColumn(),
-        console=c,
+        console=console,
     ) as progress:
         task = progress.add_task("Indexing in progress...", start=True)
 
@@ -431,19 +437,19 @@ def run_indexing(mode: str, command: list[str]) -> int:
         if not text:
             continue
         lines = text.splitlines()
-        c.print(f"\n[bold {style}]recollindex {label}:[/]")
+        console.print(f"\n[bold {style}]recollindex {label}:[/]")
         prefix = "[red]" if style == "red" else ""
         suffix = "[/]" if style == "red" else ""
         for line in lines[:50]:
-            c.print(f"  {prefix}{line}{suffix}")
+            console.print(f"  {prefix}{line}{suffix}")
         if len(lines) > 50:
-            c.print(f"  [dim]... ({len(lines)} lines total)[/]")
+            console.print(f"  [dim]... ({len(lines)} lines total)[/]")
 
     status = "SUCCESS" if exit_code == 0 else f"FAILED (exit {exit_code})"
     style = "green" if exit_code == 0 else "red"
     elapsed = pretty_duration(duration)
-    c.print()
-    c.print(f"Indexing complete: [bold {style}]{status}[/] in [cyan]{elapsed}[/]")
+    console.print()
+    console.print(f"Indexing complete: [bold {style}]{status}[/] in [cyan]{elapsed}[/]")
 
     return exit_code
 
@@ -462,17 +468,16 @@ def main() -> int:
 
     # Header
     _print_section("START")
-    c = console
     hostname_result = run_cmd("hostname")
-    c.print(f"PID       : [cyan]{my_pid}[/]")
+    console.print(f"PID       : [cyan]{my_pid}[/]")
     hostname = (
         hostname_result.stdout.strip() if hostname_result.returncode == 0 else "unknown"
     )
-    c.print(f"Hostname  : [cyan]{hostname}[/]")
-    c.print(f"User      : [cyan]{os.environ.get('USER', 'unknown')}[/]")
-    c.print(f"Arguments : [cyan]{' '.join(sys.argv[1:])}[/]")
-    c.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
-    c.print(f"Container : [cyan]{CONTAINER}[/]\n")
+    console.print(f"Hostname  : [cyan]{hostname}[/]")
+    console.print(f"User      : [cyan]{os.environ.get('USER', 'unknown')}[/]")
+    console.print(f"Arguments : [cyan]{' '.join(sys.argv[1:])}[/]")
+    console.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
+    console.print(f"Container : [cyan]{CONTAINER}[/]\n")
 
     # Pre-index diagnostics
     container_diagnostics("Initial")
@@ -481,24 +486,24 @@ def main() -> int:
 
     # Guard: don't start a second indexer
     if check_existing_indexers():
-        c.print("\n[red]Aborting because Recoll is already indexing.[/]\n")
+        console.print("\n[red]Aborting because Recoll is already indexing.[/]\n")
 
         duration = time.monotonic() - start_wall
-        c.rule()
-        c.print("Exit code : [red]2[/]")
-        c.print(f"Duration  : [cyan]{pretty_duration(duration)}[/]")
-        c.print(f"Finished  : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]\n")
+        console.rule()
+        console.print("Exit code : [red]2[/]")
+        console.print(f"Duration  : [cyan]{pretty_duration(duration)}[/]")
+        console.print(f"Finished  : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]\n")
 
         _print_section("END")
-        c.print(f"PID       : [cyan]{my_pid}[/]")
-        c.print("Exit code : [red]2[/]")
-        c.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
+        console.print(f"PID       : [cyan]{my_pid}[/]")
+        console.print("Exit code : [red]2[/]")
+        console.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
 
         return 2
 
     # Full rebuild confirmation
     if rebuild and not confirm_rebuild():
-        c.print("[yellow]Cancelled.[/]\n")
+        console.print("[yellow]Cancelled.[/]\n")
         return 0
 
     # Run indexing --------------------------------------------------------
@@ -514,17 +519,17 @@ def main() -> int:
     # Final summary -------------------------------------------------------
     duration = time.monotonic() - start_wall
 
-    c.rule()
+    console.rule()
 
     exit_style = "green" if exit_code == 0 else "red"
-    c.print(f"Exit code : [bold {exit_style}]{exit_code}[/]")
-    c.print(f"Duration  : [bold cyan]{pretty_duration(duration)}[/]")
-    c.print(f"Finished  : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]\n")
+    console.print(f"Exit code : [bold {exit_style}]{exit_code}[/]")
+    console.print(f"Duration  : [bold cyan]{pretty_duration(duration)}[/]")
+    console.print(f"Finished  : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]\n")
 
     _print_section("END")
-    c.print(f"PID       : [cyan]{my_pid}[/]")
-    c.print(f"Exit code : [bold {exit_style}]{exit_code}[/]")
-    c.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
+    console.print(f"PID       : [cyan]{my_pid}[/]")
+    console.print(f"Exit code : [bold {exit_style}]{exit_code}[/]")
+    console.print(f"Time      : [cyan]{time.strftime('%a %b %d %X %Z %Y')}[/]")
 
     return exit_code
 
