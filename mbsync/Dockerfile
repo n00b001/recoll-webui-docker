@@ -8,7 +8,7 @@
 FROM ghcr.io/jakewharton/mbsync:1.4.4-r5
 
 # Base image runs as non-root; switch to root for apk add, then drop back
-USER root
+USER 0
 
 # Install gettext for envsubst template rendering (isync + curl already present)
 # Use Alpine 3.14 repos matching the base image, with --force-broken-world
@@ -18,7 +18,7 @@ RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.14/main' > /etc/apk/repositor
     apk update && \
     apk add --no-cache --force-broken-world gettext=0.21-r0
 
-# Drop back to non-root user from base image
+# Drop back to non-root user from base image (UID 1000)
 USER 1000
 
 COPY entrypoint.sh /entrypoint.sh
