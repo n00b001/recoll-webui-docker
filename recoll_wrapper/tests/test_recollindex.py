@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 # Ensure the wrapper package is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def test_module_imports() -> None:
     """Module imports without error."""
     import recollindex  # noqa: F401
+
     assert True
 
 
@@ -88,40 +89,18 @@ def test_run_cmd_timeout() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _get_console
+# Logging setup / console
 # ---------------------------------------------------------------------------
 
 
-def test_get_console_initializes() -> None:
-    """_get_console creates console lazily."""
+def test_module_console_initialised() -> None:
+    """Module-level console is a rich Console after import."""
+    from rich.console import Console
+
     import recollindex
 
-    original = recollindex.console
-    try:
-        with patch("recollindex.Path") as mock_path:
-            mock_path.return_value.mkdir = MagicMock()
-            with patch("recollindex.open", mock_open(), create=True):
-                with patch("recollindex.Console") as mock_console_cls:
-                    recollindex.console = None
-                    console = recollindex._get_console()
-                    assert console is not None
-                    mock_console_cls.assert_called_once()
-    finally:
-        recollindex.console = original
-
-
-def test_get_console_returns_existing() -> None:
-    """_get_console returns existing console without reinitializing."""
-    import recollindex
-
-    original = recollindex.console
-    try:
-        fake_console = MagicMock()
-        recollindex.console = fake_console
-        result = recollindex._get_console()
-        assert result is fake_console
-    finally:
-        recollindex.console = original
+    assert isinstance(recollindex.console, Console)
+    assert recollindex.log is not None
 
 
 # ---------------------------------------------------------------------------
@@ -130,33 +109,37 @@ def test_get_console_returns_existing() -> None:
 
 
 def test_print_section() -> None:
-    """_print_section prints a panel."""
+    """_print_section logs with info level."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            recollindex._print_section("Test Section")
-            fake_console.print.assert_called_once()
+        recollindex.log = fake_logger
+        recollindex._print_section("Test Section")
+        fake_logger.info.assert_called_once()
+        call_args = fake_logger.info.call_args[0]
+        # Check that the title is passed as the second argument (format string, then value)
+        assert call_args[1] == "Test Section"
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_subsection() -> None:
-    """_print_subsection prints a rule."""
+    """_print_subsection logs with info level."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            recollindex._print_subsection("Test Sub")
-            fake_console.rule.assert_called_once()
+        recollindex.log = fake_logger
+        recollindex._print_subsection("Test Sub")
+        fake_logger.info.assert_called_once()
+        call_args = fake_logger.info.call_args[0]
+        # Check that the title is passed as the second argument (format string, then value)
+        assert call_args[1] == "Test Sub"
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 # ---------------------------------------------------------------------------
@@ -173,12 +156,9 @@ def test_container_diagnostics() -> None:
     try:
         recollindex.console = fake_console
 
-        mock_result = subprocess.CompletedProcess(
-            [], 0, "name\tstatus\timage\n", ""
-        )
+        mock_result = subprocess.CompletedProcess([], 0, "name\tstatus\timage\n", "")
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                recollindex.container_diagnostics("Test")
+            recollindex.container_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -196,8 +176,7 @@ def test_container_diagnostics_no_processes() -> None:
             return subprocess.CompletedProcess(args, 0, "\n", "")
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                recollindex.container_diagnostics("Test")
+            recollindex.container_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -217,8 +196,7 @@ def test_container_diagnostics_with_stderr() -> None:
             return subprocess.CompletedProcess(args, 0, "\n", "")
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                recollindex.container_diagnostics("Test")
+            recollindex.container_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -240,8 +218,7 @@ def test_storage_diagnostics() -> None:
 
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
             with patch.object(Path, "exists", return_value=False):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.storage_diagnostics("Test")
+                recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -267,8 +244,7 @@ def test_storage_diagnostics_arc_available() -> None:
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(Path, "read_text", return_value=arc_content):
-                    with patch.object(recollindex, "_get_console", return_value=fake_console):
-                        recollindex.storage_diagnostics("Test")
+                    recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -286,8 +262,7 @@ def test_storage_diagnostics_arc_read_error() -> None:
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(Path, "read_text", side_effect=OSError("perm")):
-                    with patch.object(recollindex, "_get_console", return_value=fake_console):
-                        recollindex.storage_diagnostics("Test")
+                    recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -308,8 +283,7 @@ def test_storage_diagnostics_zfs_failed() -> None:
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
             with patch.object(Path, "exists", return_value=False):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.storage_diagnostics("Test")
+                recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -330,8 +304,7 @@ def test_storage_diagnostics_lspci_unavailable() -> None:
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
             with patch.object(Path, "exists", return_value=False):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.storage_diagnostics("Test")
+                recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -348,18 +321,17 @@ def test_storage_diagnostics_pci_matching() -> None:
         def side_effect(*args, **_kwargs):
             if args[0] == "lspci":
                 return subprocess.CompletedProcess(
-                    args, 0,
+                    args,
+                    0,
                     "00:1f.2 SATA controller: Intel\n"
                     "01:00.0 VGA compatible device: NVIDIA\n",
-                    ""
+                    "",
                 )
             return subprocess.CompletedProcess(args, 0, "data\n", "")
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
             with patch.object(Path, "exists", return_value=False):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.storage_diagnostics("Test")
-                    # Should have printed the SATA line
+                recollindex.storage_diagnostics("Test")
     finally:
         recollindex.console = orig
 
@@ -373,42 +345,38 @@ def test_print_configuration_missing() -> None:
     """print_configuration handles missing config file."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         with patch.object(Path, "exists", return_value=False):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                recollindex.print_configuration()
-                calls = [str(c) for c in fake_console.print.call_args_list]
-                assert any("Missing config" in c for c in calls)
+            recollindex.print_configuration()
+            fake_logger.error.assert_called_once()
+            call_args = fake_logger.error.call_args[0]
+            assert "Missing config" in call_args[0]
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_configuration_success() -> None:
-    """print_configuration parses and prints config values."""
+    """print_configuration parses and logs config values."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         config_content = (
-            "# comment\n"
-            'topdirs = /path1\n'
-            'loglevel = 3\n'
-            'other = value\n'
+            "# comment\n" "topdirs = /path1\n" "loglevel = 3\n" "other = value\n"
         )
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", return_value=config_content):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.print_configuration()
-                    calls = [str(c) for c in fake_console.print.call_args_list]
-                    assert any("topdirs" in c for c in calls)
-                    assert any("loglevel" in c for c in calls)
+                recollindex.print_configuration()
+                calls = [str(c) for c in fake_logger.info.call_args_list]
+                assert any("topdirs" in c for c in calls)
+                assert any("loglevel" in c for c in calls)
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 def test_print_configuration_os_error() -> None:
@@ -421,8 +389,7 @@ def test_print_configuration_os_error() -> None:
         recollindex.console = fake_console
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", side_effect=OSError("perm")):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.print_configuration()
+                recollindex.print_configuration()
     finally:
         recollindex.console = orig
 
@@ -442,9 +409,8 @@ def test_check_existing_indexers_none() -> None:
         recollindex.console = fake_console
         mock_result = subprocess.CompletedProcess([], 0, "0\n", "")
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                result = recollindex.check_existing_indexers()
-                assert result is False
+            result = recollindex.check_existing_indexers()
+            assert result is False
     finally:
         recollindex.console = orig
 
@@ -459,9 +425,8 @@ def test_check_existing_indexers_running() -> None:
         recollindex.console = fake_console
         mock_result = subprocess.CompletedProcess([], 0, "2\n", "")
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                result = recollindex.check_existing_indexers()
-                assert result is True
+            result = recollindex.check_existing_indexers()
+            assert result is True
     finally:
         recollindex.console = orig
 
@@ -476,9 +441,8 @@ def test_check_existing_indexers_non_digit() -> None:
         recollindex.console = fake_console
         mock_result = subprocess.CompletedProcess([], 0, "error\n", "")
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                result = recollindex.check_existing_indexers()
-                assert result is False
+            result = recollindex.check_existing_indexers()
+            assert result is False
     finally:
         recollindex.console = orig
 
@@ -497,9 +461,8 @@ def test_confirm_rebuild_yes() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            result = recollindex.confirm_rebuild()
-            assert result is True
+        result = recollindex.confirm_rebuild()
+        assert result is True
     finally:
         recollindex.console = orig
 
@@ -513,9 +476,8 @@ def test_confirm_rebuild_yes_full() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            result = recollindex.confirm_rebuild()
-            assert result is True
+        result = recollindex.confirm_rebuild()
+        assert result is True
     finally:
         recollindex.console = orig
 
@@ -529,9 +491,8 @@ def test_confirm_rebuild_no() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            result = recollindex.confirm_rebuild()
-            assert result is False
+        result = recollindex.confirm_rebuild()
+        assert result is False
     finally:
         recollindex.console = orig
 
@@ -545,9 +506,8 @@ def test_confirm_rebuild_empty() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            result = recollindex.confirm_rebuild()
-            assert result is False
+        result = recollindex.confirm_rebuild()
+        assert result is False
     finally:
         recollindex.console = orig
 
@@ -579,14 +539,10 @@ def test_run_indexing_success() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(0)
 
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            with patch("subprocess.Popen", return_value=mock_proc):
-                with patch("time.sleep"):
-                    result = recollindex.run_indexing(
-                        "INCREMENTAL", ["recollindex"]
-                    )
-                    # exit_code = proc.returncode -> 0
-                    assert result == 0
+        with patch("subprocess.Popen", return_value=mock_proc):
+            with patch("time.sleep"):
+                result = recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+                assert result == 0
     finally:
         recollindex.console = orig
 
@@ -601,13 +557,10 @@ def test_run_indexing_failure() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(2, stdout="", stderr="error\n")
 
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            with patch("subprocess.Popen", return_value=mock_proc):
-                with patch("time.sleep"):
-                    result = recollindex.run_indexing(
-                        "FULL REBUILD", ["recollindex", "-z"]
-                    )
-                    assert result == 2
+        with patch("subprocess.Popen", return_value=mock_proc):
+            with patch("time.sleep"):
+                result = recollindex.run_indexing("FULL REBUILD", ["recollindex", "-z"])
+                assert result == 2
     finally:
         recollindex.console = orig
 
@@ -622,10 +575,9 @@ def test_run_indexing_many_lines() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(3, stdout="\n".join(f"line{i}" for i in range(100)))
 
-        with patch.object(recollindex, "_get_console", return_value=fake_console):
-            with patch("subprocess.Popen", return_value=mock_proc):
-                with patch("time.sleep"):
-                    recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+        with patch("subprocess.Popen", return_value=mock_proc):
+            with patch("time.sleep"):
+                recollindex.run_indexing("INCREMENTAL", ["recollindex"])
     finally:
         recollindex.console = orig
 
@@ -633,17 +585,6 @@ def test_run_indexing_many_lines() -> None:
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
-
-
-def _mock_storage_and_container(mod):
-    """Patch storage_diagnostics, container_diagnostics, print_configuration."""
-    mock_result = subprocess.CompletedProcess([], 0, "data\n", "")
-    return (
-        patch.object(mod, "run_cmd", return_value=mock_result),
-        patch.object(mod, "container_diagnostics"),
-        patch.object(mod, "storage_diagnostics"),
-        patch.object(mod, "print_configuration"),
-    )
 
 
 def test_main_incremental_success() -> None:
@@ -656,17 +597,21 @@ def test_main_incremental_success() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(0)
 
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "_get_console", return_value=fake_console):
-                            with patch.object(recollindex, "check_existing_indexers", return_value=False):
-                                with patch("subprocess.Popen", return_value=mock_proc):
-                                    with patch("time.sleep"):
-                                        result = recollindex.main()
-                                        # proc.returncode → 0
-                                        assert result == 0
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
+                            with patch("subprocess.Popen", return_value=mock_proc):
+                                with patch("time.sleep"):
+                                    result = recollindex.main()
+                                    assert result == 0
     finally:
         recollindex.console = orig
 
@@ -679,14 +624,19 @@ def test_main_aborts_on_existing_indexer() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "_get_console", return_value=fake_console):
-                            with patch.object(recollindex, "check_existing_indexers", return_value=True):
-                                result = recollindex.main()
-                                assert result == 2
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=True
+                        ):
+                            result = recollindex.main()
+                            assert result == 2
     finally:
         recollindex.console = orig
 
@@ -699,16 +649,25 @@ def test_main_rebuild_cancelled() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "_get_console", return_value=fake_console):
-                            with patch.object(recollindex, "check_existing_indexers", return_value=False):
-                                with patch.object(recollindex, "confirm_rebuild", return_value=False):
-                                    with patch.object(sys, "argv", ["recollindex.py", "--rebuild"]):
-                                        result = recollindex.main()
-                                        assert result == 0
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
+                            with patch.object(
+                                recollindex, "confirm_rebuild", return_value=False
+                            ):
+                                with patch.object(
+                                    sys, "argv", ["recollindex.py", "--rebuild"]
+                                ):
+                                    result = recollindex.main()
+                                    assert result == 0
     finally:
         recollindex.console = orig
 
@@ -723,18 +682,27 @@ def test_main_rebuild_success() -> None:
         recollindex.console = fake_console
         mock_proc = _make_mock_proc(0)
 
-        with patch.object(recollindex, "run_cmd", return_value=subprocess.CompletedProcess([], 0, "hostname\n", "")):
+        with patch.object(
+            recollindex,
+            "run_cmd",
+            return_value=subprocess.CompletedProcess([], 0, "hostname\n", ""),
+        ):
             with patch.object(recollindex, "container_diagnostics"):
                 with patch.object(recollindex, "storage_diagnostics"):
                     with patch.object(recollindex, "print_configuration"):
-                        with patch.object(recollindex, "_get_console", return_value=fake_console):
-                            with patch.object(recollindex, "check_existing_indexers", return_value=False):
-                                with patch.object(recollindex, "confirm_rebuild", return_value=True):
-                                    with patch("subprocess.Popen", return_value=mock_proc):
-                                        with patch("time.sleep"):
-                                            with patch.object(sys, "argv", ["recollindex.py", "--rebuild"]):
-                                                result = recollindex.main()
-                                                assert result == 0
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=False
+                        ):
+                            with patch.object(
+                                recollindex, "confirm_rebuild", return_value=True
+                            ):
+                                with patch("subprocess.Popen", return_value=mock_proc):
+                                    with patch("time.sleep"):
+                                        with patch.object(
+                                            sys, "argv", ["recollindex.py", "--rebuild"]
+                                        ):
+                                            result = recollindex.main()
+                                            assert result == 0
     finally:
         recollindex.console = orig
 
@@ -758,10 +726,9 @@ def test_locked_main_success() -> None:
 
         try:
             with patch.object(recollindex, "LOCK_FILE", tmp_path):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    with patch.object(recollindex, "main", return_value=0):
-                        result = recollindex._locked_main()
-                        assert result == 0
+                with patch.object(recollindex, "main", return_value=0):
+                    result = recollindex._locked_main()
+                    assert result == 0
         finally:
             os.unlink(tmp_path)
     finally:
@@ -776,10 +743,9 @@ def test_locked_main_lock_file_os_error() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch("recollindex.open", side_effect=OSError("no perm")):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                result = recollindex._locked_main()
-                assert result == 1
+        with patch("builtins.open", side_effect=OSError("no perm")):
+            result = recollindex._locked_main()
+            assert result == 1
     finally:
         recollindex.console = orig
 
@@ -798,11 +764,11 @@ def test_locked_main_exception_handling() -> None:
 
         try:
             with patch.object(recollindex, "LOCK_FILE", tmp_path):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    with patch.object(recollindex, "main", side_effect=RuntimeError("boom")):
-                        result = recollindex._locked_main()
-                        assert result == 1
-                        fake_console.print_exception.assert_called()
+                with patch.object(
+                    recollindex, "main", side_effect=RuntimeError("boom")
+                ):
+                    result = recollindex._locked_main()
+                    assert result == 1
         finally:
             os.unlink(tmp_path)
     finally:
@@ -850,29 +816,34 @@ def test_log_file_constant_uses_base_path() -> None:
 
 
 def test_container_diagnostics_recoll_version_stderr() -> None:
-    """container_diagnostics prints stderr when recoll version command has stderr."""
+    """container_diagnostics logs stderr when recoll version command has stderr."""
     import subprocess
 
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         container = recollindex.CONTAINER
 
         def side_effect(*args, **_kwargs):
-            if len(args) >= 4 and args[0] == "docker" and args[1] == "exec" and args[2] == container and args[3] == "sh":
+            if (
+                len(args) >= 4
+                and args[0] == "docker"
+                and args[1] == "exec"
+                and args[2] == container
+                and args[3] == "sh"
+            ):
                 return subprocess.CompletedProcess(args, 0, "v1\n", "warning\n")
             return subprocess.CompletedProcess(args, 0, "data\n", "")
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
-            with patch.object(recollindex, "_get_console", return_value=fake_console):
-                recollindex.container_diagnostics("Test")
-                calls = [str(c) for c in fake_console.print.call_args_list]
-                assert any("warning" in c for c in calls)
+            recollindex.container_diagnostics("Test")
+            calls = [str(c) for c in fake_logger.debug.call_args_list]
+            assert any("warning" in c for c in calls)
     finally:
-        recollindex.console = orig
+        recollindex.log = orig
 
 
 # ---------------------------------------------------------------------------
@@ -881,24 +852,24 @@ def test_container_diagnostics_recoll_version_stderr() -> None:
 
 
 def test_print_cmd_output_success() -> None:
-    """_print_cmd_output prints stdout on success."""
+    """_print_cmd_output logs stdout on success."""
     import recollindex
 
-    fake_console = MagicMock()
+    fake_logger = MagicMock()
     result = subprocess.CompletedProcess([], 0, "line1\nline2\n", "")
-    recollindex._print_cmd_output("test", result, fake_console)
-    assert fake_console.print.call_count == 2
+    recollindex._print_cmd_output("test", result, fake_logger)
+    assert fake_logger.info.call_count == 2
 
 
 def test_print_cmd_output_failure() -> None:
-    """_print_cmd_output prints dim unavailable on failure."""
+    """_print_cmd_output logs debug unavailable on failure."""
     import recollindex
 
-    fake_console = MagicMock()
+    fake_logger = MagicMock()
     result = subprocess.CompletedProcess([], 1, "", "Function not implemented")
-    recollindex._print_cmd_output("test", result, fake_console)
-    fake_console.print.assert_called_once()
-    call = fake_console.print.call_args[0][0]
+    recollindex._print_cmd_output("test", result, fake_logger)
+    fake_logger.debug.assert_called_once()
+    call = fake_logger.debug.call_args[0][0]
     assert "unavailable" in call
     # Should NOT leak the raw stderr message
     assert "Function not implemented" not in call
@@ -933,8 +904,7 @@ def test_storage_diagnostics_all_commands_fail() -> None:
 
         with patch.object(recollindex, "run_cmd", side_effect=side_effect):
             with patch.object(Path, "exists", return_value=False):
-                with patch.object(recollindex, "_get_console", return_value=fake_console):
-                    recollindex.storage_diagnostics("Test")
+                recollindex.storage_diagnostics("Test")
         # Should NOT have printed any "Function not implemented" lines
         calls = [str(c) for c in fake_console.print.call_args_list]
         assert not any("Function not implemented" in c for c in calls)
