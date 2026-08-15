@@ -280,9 +280,9 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: false
-          # read cache, don't write: PR-branch cache writes are invisible to main,
-          # so they only compete with main's cache for the 10 GB budget
-          cache-from: type=gha,scope=${{ matrix.image }}
+          # no cache for PR builds to avoid cross-context cache pollution
+          # (e.g., recoll-webui cache layers have /recoll-webui which breaks mbsync builds)
+          cache-from: type=gha,scope=${{ matrix.image }}-pr
           build-args: |
             PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
 
