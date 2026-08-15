@@ -249,9 +249,6 @@ jobs:
         with:
           driver: docker-container
           name: builder-${{ matrix.image }}
-          # Disable cache entirely for PR builds to prevent cross-context pollution
-          cache-to: type=local,dest=/dev/null
-          cache-from: type=local,src=/dev/null
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -287,8 +284,10 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: false
-          # disable cache for PR builds to avoid cross-context cache pollution
+          # Disable cache entirely for PR builds to prevent cross-context cache pollution
           # (e.g., recoll-webui cache layers have /recoll-webui which breaks mbsync builds)
+          cache-from: type=local,src=/dev/null
+          cache-to: type=local,dest=/dev/null
           build-args: |
             PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
 

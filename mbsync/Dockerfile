@@ -5,8 +5,9 @@
 # We add gettext for envsubst template rendering, using matching v3.14 repos.
 # =============================================================================
 
-FROM ghcr.io/jakewharton/mbsync:latest
+FROM ghcr.io/jakewharton/mbsync:1.4.4-r5
 
+# Base image runs as non-root; switch to root for apk add, then drop back
 USER root
 
 # Install gettext for envsubst template rendering (isync + curl already present)
@@ -15,7 +16,10 @@ USER root
 RUN echo 'https://dl-cdn.alpinelinux.org/alpine/v3.14/main' > /etc/apk/repositories && \
     echo 'https://dl-cdn.alpinelinux.org/alpine/v3.14/community' >> /etc/apk/repositories && \
     apk update && \
-    apk add --no-cache --force-broken-world gettext
+    apk add --no-cache --force-broken-world gettext=0.21-r0
+
+# Drop back to non-root user from base image
+USER 1000
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
