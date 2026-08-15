@@ -255,14 +255,29 @@ jobs:
           echo "pkg_hash=$(echo -n "$PKG_LINE" | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
 
       # =====================
-      # Both PR and main: use a unique buildx builder per matrix job
-      # This prevents cross-context cache pollution (e.g., recoll-webui layers breaking mbsync)
+      # PR validation: use plain `docker build` (legacy builder) to avoid
+      # cross-context cache pollution from buildx. Each matrix job runs
+      # on its own runner with isolated Docker daemon.
       # =====================
-      - name: Create buildx builder
+      - name: Build image (PR validation)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker build \
+            --no-cache \
+            --file "${{ matrix.file }}" \
+            --tag "${{ matrix.image }}:pr" \
+            ${{ matrix.image == 'recoll-engine' && format('--build-arg PACKAGE_HASH={0}', steps.pkg-hash.outputs.pkg_hash) || '' }} \
+            ${{ matrix.context }}
+
+      # =====================
+      # Main: build + publish with buildx, named builder, per-image GHA cache
+      # =====================
+      - name: Create buildx builder (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           driver: docker-container
-          name: builder-${{ matrix.image }}-${{ github.run_id }}-${{ github.job }}
+          name: builder-${{ matrix.image }}-${{ github.run_id }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -278,24 +293,12 @@ jobs:
         run: |
           echo "short_sha=$(echo "${GITHUB_SHA}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
-      # Build for PR validation (no push, no cache)
-      - name: Build image (PR validation)
-        if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          builder: builder-${{ matrix.image }}-${{ github.run_id }}-${{ github.job }}
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          push: false
-          no-cache: true
-          build-args: ${{ matrix.image == 'recoll-engine' && format('PACKAGE_HASH={0}', steps.pkg-hash.outputs.pkg_hash) || '' }}
-
-      # Build and push for main branch (with per-image GHA cache)
+      # Build and push for main branch
       - name: Build and push image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          builder: builder-${{ matrix.image }}-${{ github.run_id }}-${{ github.job }}
+          builder: builder-${{ matrix.image }}-${{ github.run_id }}
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: true
