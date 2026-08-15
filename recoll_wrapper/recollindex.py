@@ -41,8 +41,13 @@ DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 # Logging setup — Rich handler to both stderr and log file
 # ---------------------------------------------------------------------------
 
-Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-console = Console(file=open(LOG_FILE, "a"), stderr=True)  # noqa: SIM115
+try:
+    Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+    log_file = open(LOG_FILE, "a")  # noqa: SIM115
+except (OSError, PermissionError):
+    log_file = None
+
+console = Console(file=log_file, stderr=True)
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(message)s",
