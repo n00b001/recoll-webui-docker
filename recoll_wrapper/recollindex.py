@@ -38,61 +38,24 @@ LOCK_FILE = "/tmp/recollindex-wrapper.lock"
 DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 
 # ---------------------------------------------------------------------------
-# Logging setup — console + file with Rich formatting (lazy file handler)
+# Logging setup — Rich handler to both stderr and log file
 # ---------------------------------------------------------------------------
 
-def _setup_logging() -> Console:
-    """Configure root logger with Rich handlers for console and file.
-
-    File handler is added lazily on first use to avoid import-time
-    filesystem access (which fails in CI where /mnt/shuttle/share doesn't exist).
-    """
-    # Console handler (stderr) — rich formatting, colours, traceback support
-    console = Console(stderr=True)
-    console_handler = RichHandler(
-        console=console,
-        rich_tracebacks=True,
-        tracebacks_show_locals=True,
-        markup=True,
-        log_time_format="[%X]",
-    )
-    console_handler.setLevel(logging.INFO)
-
-    # Root logger — start with console only
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-    root.handlers.clear()
-    root.addHandler(console_handler)
-
-    # Return console for Progress/Progress rendering
-    return console
-
-
-def _ensure_file_handler() -> None:
-    """Add file handler to root logger if not already present.
-
-    Gracefully degrades to console-only if log directory cannot be created.
-    """
-    root = logging.getLogger()
-    # Check if file handler already exists
-    if any(isinstance(h, logging.FileHandler) for h in root.handlers):
-        return
-
-    try:
-        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        file_formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+console = Console(file=open(LOG_FILE, "a"), stderr=True)  # noqa: SIM115
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[
+        RichHandler(
+            console=console,
+            rich_tracebacks=True,
+            tracebacks_show_locals=True,
+            markup=True,
+            log_time_format="[%X]",
         )
-        file_handler.setFormatter(file_formatter)
-        root.addHandler(file_handler)
-    except (OSError, PermissionError):
-        # Log directory unavailable (e.g., CI environment) — fall back to console-only
-        pass
-
-
-console: Console = _setup_logging()
+    ],
+)
 log = logging.getLogger(__name__)
 
 

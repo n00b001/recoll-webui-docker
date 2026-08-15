@@ -88,18 +88,8 @@ def test_run_cmd_timeout() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _setup_logging / console
+# Logging setup / console
 # ---------------------------------------------------------------------------
-
-
-def test_setup_logging_returns_console() -> None:
-    """_setup_logging returns a Console instance."""
-    from rich.console import Console
-
-    from recollindex import _setup_logging
-
-    c = _setup_logging()
-    assert isinstance(c, Console)
 
 
 def test_module_console_initialised() -> None:
