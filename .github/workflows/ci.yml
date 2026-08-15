@@ -113,7 +113,7 @@ jobs:
         id: hl-root
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: Dockerfile
+          file: Dockerfile
           args: --config .hadolint
           output-file: hadolint-root.txt
           no-color: true
@@ -123,7 +123,7 @@ jobs:
         id: hl-engine
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: recoll-engine/Dockerfile
+          file: recoll-engine/Dockerfile
           args: --config .hadolint
           output-file: hadolint-engine.txt
           no-color: true
@@ -133,7 +133,7 @@ jobs:
         id: hl-whatsapp
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: whatsapp-archiver/Dockerfile
+          file: whatsapp-archiver/Dockerfile
           args: --config .hadolint
           output-file: hadolint-whatsapp.txt
           no-color: true
@@ -143,7 +143,7 @@ jobs:
         id: hl-sms
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: sms-processor/Dockerfile
+          file: sms-processor/Dockerfile
           args: --config .hadolint
           output-file: hadolint-sms.txt
           no-color: true
@@ -153,7 +153,7 @@ jobs:
         id: hl-audio
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: recoll-audio-worker/Dockerfile
+          file: recoll-audio-worker/Dockerfile
           args: --config .hadolint
           output-file: hadolint-audio.txt
           no-color: true
@@ -218,23 +218,27 @@ jobs:
         include:
           - image: recoll-webui
             context: .
-            dockerfile: Dockerfile
+            file: Dockerfile
 
           - image: recoll-engine
             context: .
-            dockerfile: recoll-engine/Dockerfile
+            file: recoll-engine/Dockerfile
 
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
+            file: Dockerfile
 
           - image: sms-processor
             context: ./sms-processor
+            file: Dockerfile
 
           - image: mbsync
             context: ./mbsync
+            file: Dockerfile
 
           - image: recoll-audio-worker
             context: ./recoll-audio-worker
+            file: Dockerfile
 
     steps:
       - name: Checkout repository
@@ -274,7 +278,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
-          dockerfile: ${{ matrix.dockerfile }}
+          file: ${{ matrix.file }}
           push: false
           # read cache, don't write: PR-branch cache writes are invisible to main,
           # so they only compete with main's cache for the 10 GB budget
@@ -292,7 +296,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
-          dockerfile: ${{ matrix.dockerfile }}
+          file: ${{ matrix.file }}
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
