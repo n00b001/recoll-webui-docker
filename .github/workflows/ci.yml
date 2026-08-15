@@ -226,19 +226,19 @@ jobs:
 
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
-            file: Dockerfile
+            file: whatsapp-archiver/Dockerfile
 
           - image: sms-processor
             context: ./sms-processor
-            file: Dockerfile
+            file: sms-processor/Dockerfile
 
           - image: mbsync
             context: ./mbsync
-            file: Dockerfile
+            file: mbsync/Dockerfile
 
           - image: recoll-audio-worker
             context: ./recoll-audio-worker
-            file: Dockerfile
+            file: recoll-audio-worker/Dockerfile
 
     steps:
       - name: Checkout repository
