@@ -286,8 +286,7 @@ jobs:
           push: false
           # Disable cache entirely for PR builds to prevent cross-context cache pollution
           # (e.g., recoll-webui cache layers have /recoll-webui which breaks mbsync builds)
-          cache-from: type=local,src=/dev/null
-          cache-to: type=local,dest=/dev/null
+          no-cache: true
           build-args: |
             PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
 
