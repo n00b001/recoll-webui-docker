@@ -113,7 +113,7 @@ jobs:
         id: hl-root
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: Dockerfile
+          file: Dockerfile
           args: --config .hadolint
           output-file: hadolint-root.txt
           no-color: true
@@ -123,7 +123,7 @@ jobs:
         id: hl-engine
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: recoll-engine/Dockerfile
+          file: recoll-engine/Dockerfile
           args: --config .hadolint
           output-file: hadolint-engine.txt
           no-color: true
@@ -133,7 +133,7 @@ jobs:
         id: hl-whatsapp
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: whatsapp-archiver/Dockerfile
+          file: whatsapp-archiver/Dockerfile
           args: --config .hadolint
           output-file: hadolint-whatsapp.txt
           no-color: true
@@ -143,7 +143,7 @@ jobs:
         id: hl-sms
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: sms-processor/Dockerfile
+          file: sms-processor/Dockerfile
           args: --config .hadolint
           output-file: hadolint-sms.txt
           no-color: true
@@ -153,7 +153,7 @@ jobs:
         id: hl-audio
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
         with:
-          dockerfile: recoll-audio-worker/Dockerfile
+          file: recoll-audio-worker/Dockerfile
           args: --config .hadolint
           output-file: hadolint-audio.txt
           no-color: true
@@ -218,30 +218,66 @@ jobs:
         include:
           - image: recoll-webui
             context: .
-            dockerfile: Dockerfile
+            file: Dockerfile
 
           - image: recoll-engine
             context: .
-            dockerfile: recoll-engine/Dockerfile
+            file: recoll-engine/Dockerfile
 
           - image: whatsapp-archiver
             context: ./whatsapp-archiver
+            file: whatsapp-archiver/Dockerfile
 
           - image: sms-processor
             context: ./sms-processor
+            file: sms-processor/Dockerfile
 
           - image: mbsync
             context: ./mbsync
+            file: mbsync/Dockerfile
 
           - image: recoll-audio-worker
             context: ./recoll-audio-worker
+            file: recoll-audio-worker/Dockerfile
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Create buildx builder (required for GHA cache)
+      # Compute package hash for recoll-engine (needed for both PR and main)
+      - name: Compute package hash (cache busting for recoll-engine)
+        if: matrix.image == 'recoll-engine'
+        id: pkg-hash
+        run: |
+          # Extract package list from RUN apt-get install line in Dockerfile
+          # Hash it to create a cache-busting arg
+          PKG_LINE=$(grep -A 30 'apt-get install' recoll-engine/Dockerfile | head -31 | tail -30 | sed 's/^[[:space:]]*//' | sed 's/\\$//' | tr '\n' ' ')
+          echo "pkg_hash=$(echo -n "$PKG_LINE" | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+      # =====================
+      # PR validation: use plain `docker build` (legacy builder) to avoid
+      # cross-context cache pollution from buildx. Each matrix job runs
+      # on its own runner with isolated Docker daemon.
+      # =====================
+      - name: Build image (PR validation)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker build \
+            --no-cache \
+            --file "${{ matrix.file }}" \
+            --tag "${{ matrix.image }}:pr" \
+            ${{ matrix.image == 'recoll-engine' && format('--build-arg PACKAGE_HASH={0}', steps.pkg-hash.outputs.pkg_hash) || '' }} \
+            ${{ matrix.context }}
+
+      # =====================
+      # Main: build + publish with buildx, named builder, per-image GHA cache
+      # =====================
+      - name: Create buildx builder (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          driver: docker-container
+          name: builder-${{ matrix.image }}-${{ github.run_id }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -257,42 +293,14 @@ jobs:
         run: |
           echo "short_sha=$(echo "${GITHUB_SHA}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
-      # =====================
-      # PR: validate build, reuse main's per-image cache
-      # =====================
-      - name: Compute package hash (cache busting for recoll-engine)
-        if: matrix.image == 'recoll-engine'
-        id: pkg-hash
-        run: |
-          # Extract package list from RUN apt-get install line in Dockerfile
-          # Hash it to create a cache-busting arg
-          PKG_LINE=$(grep -A 30 'apt-get install' recoll-engine/Dockerfile | head -31 | tail -30 | sed 's/^[[:space:]]*//' | sed 's/\\$//' | tr '\n' ' ')
-          echo "pkg_hash=$(echo -n "$PKG_LINE" | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
-
-      - name: Build image (PR validation)
-        if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: ${{ matrix.context }}
-          dockerfile: ${{ matrix.dockerfile }}
-          push: false
-          # read cache, don't write: PR-branch cache writes are invisible to main,
-          # so they only compete with main's cache for the 10 GB budget
-          cache-from: type=gha,scope=${{ matrix.image }}
-          build-args: |
-            PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
-
-      # =====================
-      # Push to main: build + publish, reuse previous main build's per-image cache
-      # =====================
-      # scope per image: the default `buildkit` scope lets each image's cache
-      # overwrite the previous, so only the last image's layers survive for reuse.
+      # Build and push for main branch
       - name: Build and push image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
+          builder: builder-${{ matrix.image }}-${{ github.run_id }}
           context: ${{ matrix.context }}
-          dockerfile: ${{ matrix.dockerfile }}
+          file: ${{ matrix.file }}
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
@@ -300,5 +308,4 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.meta.outputs.short_sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-          build-args: |
-            PACKAGE_HASH=${{ steps.pkg-hash.outputs.pkg_hash }}
+          build-args: ${{ matrix.image == 'recoll-engine' && format('PACKAGE_HASH={0}', steps.pkg-hash.outputs.pkg_hash) || '' }}
