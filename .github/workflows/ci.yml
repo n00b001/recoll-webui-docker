@@ -255,14 +255,9 @@ jobs:
           echo "pkg_hash=$(echo -n "$PKG_LINE" | sha256sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
 
       # =====================
-      # PR: validate build with fresh builder and no cache
+      # PR: validate build with NO setup-buildx-action (ephemeral builder per matrix job)
+      # and no-cache:true to prevent cross-context cache pollution
       # =====================
-      - name: Create buildx builder (PR - no cache)
-        if: github.event_name == 'pull_request'
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-        with:
-          driver: docker-container
-
       - name: Build image (PR validation)
         if: github.event_name == 'pull_request'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -270,7 +265,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: false
-          # Disable cache entirely for PR builds to prevent cross-context cache pollution
+          # No setup-buildx-action = each matrix job gets its own ephemeral builder
+          # no-cache: true = disable build cache entirely
           # (e.g., recoll-webui cache layers have /recoll-webui which breaks mbsync builds)
           no-cache: true
           build-args: ${{ matrix.image == 'recoll-engine' && format('PACKAGE_HASH={0}', steps.pkg-hash.outputs.pkg_hash) || '' }}
