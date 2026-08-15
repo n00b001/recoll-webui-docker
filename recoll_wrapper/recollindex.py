@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import fcntl
+import logging
 import os
 import re
 import subprocess
@@ -37,20 +38,45 @@ LOCK_FILE = "/tmp/recollindex-wrapper.lock"
 DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 
 # ---------------------------------------------------------------------------
-# Console / logging — two lines: https://github.com/Textualize/rich/discussions/1309
+# Logging setup — console + file with Rich formatting
 # ---------------------------------------------------------------------------
 
-def _get_console() -> Console:
-    """Return the global console, initialising lazily on first call."""
-    global console  # noqa: PLW0603
-    if console is None:
-        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-        console = Console(file=open(LOG_FILE, "a", encoding="utf-8"))  # noqa: SIM115
-        RichHandler(console=console)
+def _setup_logging() -> Console:
+    """Configure root logger with Rich handlers for console and file."""
+    Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+
+    # Console handler (stderr) — rich formatting, colours, traceback support
+    console = Console(stderr=True)
+    console_handler = RichHandler(
+        console=console,
+        rich_tracebacks=True,
+        tracebacks_show_locals=True,
+        markup=True,
+        log_time_format="[%X]",
+    )
+    console_handler.setLevel(logging.INFO)
+
+    # File handler (plain text for grep-ability, no markup)
+    file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    file_handler.setFormatter(file_formatter)
+
+    # Root logger
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    root.handlers.clear()
+    root.addHandler(console_handler)
+    root.addHandler(file_handler)
+
+    # Return console for Progress/Progress rendering
     return console
 
 
-console: Console | None = None
+console: Console = _setup_logging()
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -99,11 +125,11 @@ def _print_cmd_output(
 
 
 def _print_section(title: str) -> None:
-    _get_console().print(Panel.fit(title, border_style="bold yellow", padding=(0, 1)))
+    console.print(Panel.fit(title, border_style="bold yellow", padding=(0, 1)))
 
 
 def _print_subsection(title: str) -> None:
-    _get_console().rule(f"[bold cyan]{title}[/]")
+    console.rule(f"[bold cyan]{title}[/]")
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +146,7 @@ def container_diagnostics(label: str) -> None:
     _print_subsection(f"{label}: Container diagnostics")
 
     # Container status table
-    c = _get_console()
+    c = console
     c.print("Container status:")
     result = run_cmd(
         "docker",
@@ -188,7 +214,7 @@ def storage_diagnostics(label: str) -> None:  # noqa: PLR0915
     """
     _print_subsection(f"{label}: Storage diagnostics")
 
-    c = _get_console()
+    c = console
     c.print(
         "[dim]NOTE: zpool/zfs diagnostics run on the TrueNAS host,[/]"
         " not inside the Recoll container."
@@ -292,7 +318,7 @@ def print_configuration() -> None:
     """Print relevant Recoll configuration values."""
     _print_subsection("Configuration")
 
-    c = _get_console()
+    c = console
     config_path = Path(CONFIG_FILE)
     if not config_path.exists():
         c.print(f"[red]Missing config file: {CONFIG_FILE}[/]")
@@ -332,7 +358,7 @@ def check_existing_indexers() -> bool:
     count_text = result.stdout.strip()
     count = int(count_text) if count_text.isdigit() else 0
 
-    c = _get_console()
+    c = console
     c.print("Checking existing Recoll indexers...")
     c.print(f"Existing recollindex processes: [bold]{count}[/]")
 
@@ -350,7 +376,7 @@ def check_existing_indexers() -> bool:
 
 def confirm_rebuild() -> bool:
     """Ask the user for y/N confirmation before a full rebuild."""
-    c = _get_console()
+    c = console
     c.print(
         "\n[bold red]WARNING:[/] This will completely rebuild the Recoll index."
     )
@@ -371,7 +397,7 @@ def confirm_rebuild() -> bool:
 
 def run_indexing(mode: str, command: list[str]) -> int:
     """Run recollindex inside the container with a live progress spinner."""
-    c = _get_console()
+    c = console
     _print_subsection("Indexing")
     c.print(f"Mode: [bold magenta]{mode}[/]")
     c.print(f"Command: [cyan]{' '.join(command)}[/]\n")
@@ -450,7 +476,7 @@ def main() -> int:
 
     # Header
     _print_section("START")
-    c = _get_console()
+    c = console
     hostname_result = run_cmd("hostname")
     c.print(f"PID       : [cyan]{my_pid}[/]")
     hostname = (
@@ -527,15 +553,14 @@ def _locked_main() -> int:
     try:
         lock_fd = open(LOCK_FILE, "w", encoding="utf-8")  # noqa: SIM115
     except OSError as exc:
-        _get_console().print(f"[red]Cannot create lock file {LOCK_FILE}: {exc}[/]")
+        log.error("Cannot create lock file %s: %s", LOCK_FILE, exc)
         return 1
 
     fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     try:
         return main()
     except BaseException:
-        _get_console().print("[bold red]Unhandled exception:[/]")
-        _get_console().print_exception()
+        log.exception("Unhandled exception:")
         return 1
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
