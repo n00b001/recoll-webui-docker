@@ -59,6 +59,15 @@ def test_pretty_duration_large() -> None:
     assert pretty_duration(99999) == "27h 46m 39s"
 
 
+def test_pretty_duration_clamps_invalid() -> None:
+    """Non-finite and negative inputs clamp to zero instead of raising."""
+    from recollindex import pretty_duration
+
+    assert pretty_duration(float("inf")) == "00h 00m 00s"
+    assert pretty_duration(float("nan")) == "00h 00m 00s"
+    assert pretty_duration(-5) == "00h 00m 00s"
+
+
 # ---------------------------------------------------------------------------
 # run_cmd
 # ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import logging
+import math
 import os
 import queue
 import re
@@ -211,13 +212,12 @@ def run_cmd(*args: str, timeout: int | None = None) -> subprocess.CompletedProce
 
 
 def pretty_duration(seconds: float) -> str:
-    """Format seconds as ``HHh MMm SSs``."""
+    """Format seconds as ``HHh MMm SSs`` (non-finite or negative clamp to zero)."""
+    if not math.isfinite(seconds) or seconds < 0:
+        return "00h 00m 00s"
     t = timedelta(seconds=int(seconds))
-    h, m, s = (
-        int(t.total_seconds()) // 3600,
-        (int(t.total_seconds()) % 3600) // 60,
-        int(t.total_seconds()) % 60,
-    )
+    total = int(t.total_seconds())
+    h, m, s = total // 3600, (total % 3600) // 60, total % 60
     return f"{h:02d}h {m:02d}m {s:02d}s"
 
 
@@ -582,7 +582,7 @@ def check_existing_indexers() -> bool:
         "pgrep -x recollindex | wc -l",
     )
     count_text = result.stdout.strip()
-    count = int(count_text) if count_text.isdigit() else 0
+    count = int(count_text) if count_text.isascii() and count_text.isdigit() else 0
 
     log.info("Checking existing Recoll indexers...")
     log.info("Existing recollindex processes: %d", count)
