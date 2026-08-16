@@ -24,6 +24,7 @@ class TestStateManagement:
     def test_load_empty_state(self, tmp_path: Path):
         # Temporarily override STATE_FILE
         from sms_processor import core
+
         original = core.STATE_FILE
         core.STATE_FILE = tmp_path / ".processed.json"
         try:
@@ -34,6 +35,7 @@ class TestStateManagement:
 
     def test_save_and_load_state(self, tmp_path: Path):
         from sms_processor import core
+
         original = core.STATE_FILE
         core.STATE_FILE = tmp_path / ".processed.json"
         try:
@@ -45,6 +47,7 @@ class TestStateManagement:
 
     def test_corrupt_state_file(self, tmp_path: Path):
         from sms_processor import core
+
         original = core.STATE_FILE
         core.STATE_FILE = tmp_path / ".processed.json"
         try:
@@ -58,6 +61,7 @@ class TestStateManagement:
 class TestScanAndProcess:
     def test_no_input_dir(self, tmp_path: Path):
         from sms_processor import core
+
         original_input = core.INPUT_DIR
         original_output = core.OUTPUT_DIR
         original_state = core.STATE_FILE
@@ -75,6 +79,7 @@ class TestScanAndProcess:
 
     def test_processes_new_files(self, tmp_path: Path):
         from sms_processor import core
+
         original_input = core.INPUT_DIR
         original_output = core.OUTPUT_DIR
         original_state = core.STATE_FILE
@@ -89,9 +94,9 @@ class TestScanAndProcess:
         xml_file = user_dir / "backup.xml"
         xml_file.write_text(
             '<?xml version="1.0"?>'
-            '<backup>'
+            "<backup>"
             '<sms address="+123" date="1722051780000" type="1">'
-            '<body>test</body><date>2024-01-01 00:00:00</date></sms>'
+            "<body>test</body><date>2024-01-01 00:00:00</date></sms>"
             "</backup>"
         )
 
@@ -105,6 +110,7 @@ class TestScanAndProcess:
 
     def test_skips_processed_files(self, tmp_path: Path):
         from sms_processor import core
+
         original_input = core.INPUT_DIR
         original_output = core.OUTPUT_DIR
         original_state = core.STATE_FILE
@@ -119,9 +125,9 @@ class TestScanAndProcess:
         xml_file = user_dir / "backup.xml"
         xml_file.write_text(
             '<?xml version="1.0"?>'
-            '<backup>'
+            "<backup>"
             '<sms address="+123" date="1722051780000" type="1">'
-            '<body>test</body><date>2024-01-01 00:00:00</date></sms>'
+            "<body>test</body><date>2024-01-01 00:00:00</date></sms>"
             "</backup>"
         )
 

@@ -106,7 +106,7 @@ class TestExtractMessages:
         assert msgs[3]["subject"] == "Photo"
 
     def test_empty_backup(self):
-        empty_xml = '<backup><call><number>123</number></call></backup>'
+        empty_xml = "<backup><call><number>123</number></call></backup>"
         root = ET.fromstring(empty_xml)
         msgs = extract_sms_messages(root)
         assert len(msgs) == 0
@@ -118,11 +118,11 @@ class TestExtractContactName:
         assert extract_contact_name(elem) == "Mom"
 
     def test_person_child(self):
-        elem = ET.fromstring('<sms><person>Dad</person></sms>')
+        elem = ET.fromstring("<sms><person>Dad</person></sms>")
         assert extract_contact_name(elem) == "Dad"
 
     def test_no_person(self):
-        elem = ET.fromstring('<sms/>')
+        elem = ET.fromstring("<sms/>")
         assert extract_contact_name(elem) is None
 
 

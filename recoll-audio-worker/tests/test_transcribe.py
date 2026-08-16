@@ -206,8 +206,17 @@ class TestEnvConfig:
 
     def test_all_extensions_covered(self) -> None:
         expected = {
-            ".mp3", ".wav", ".m4a", ".aac", ".ogg", ".opus", ".flac",
-            ".webm", ".mp4", ".mov", ".mkv",
+            ".mp3",
+            ".wav",
+            ".m4a",
+            ".aac",
+            ".ogg",
+            ".opus",
+            ".flac",
+            ".webm",
+            ".mp4",
+            ".mov",
+            ".mkv",
         }
         assert transcribe.ALL_EXTENSIONS == expected
 
@@ -266,8 +275,11 @@ class TestTranscribeFile:
 class TestHasAudioStream:
     def _run(self, monkeypatch, *, stdout: str, returncode: int = 0) -> bool:
         """Run has_audio_stream with a fake ffprobe."""
+
         def fake_ffprobe(cmd, **kwargs):
-            return subprocess.CompletedProcess(cmd, returncode, stdout=stdout, stderr="")
+            return subprocess.CompletedProcess(
+                cmd, returncode, stdout=stdout, stderr=""
+            )
 
         monkeypatch.setattr(transcribe.subprocess, "run", fake_ffprobe)
         return transcribe.has_audio_stream(Path("/fake/video.webm"))
@@ -284,9 +296,7 @@ class TestHasAudioStream:
 
 
 class TestProcessAudioFileSkip:
-    def test_video_only_skipped_and_marked(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    def test_video_only_skipped_and_marked(self, tmp_path, monkeypatch) -> None:
         """Video-only file: no transcode, no whisper, returns skipped=True."""
         inp = tmp_path / "input"
         inp.mkdir()
