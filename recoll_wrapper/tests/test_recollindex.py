@@ -59,6 +59,15 @@ def test_pretty_duration_large() -> None:
     assert pretty_duration(99999) == "27h 46m 39s"
 
 
+def test_pretty_duration_clamps_invalid() -> None:
+    """Non-finite and negative inputs clamp to zero instead of raising."""
+    from recollindex import pretty_duration
+
+    assert pretty_duration(float("inf")) == "00h 00m 00s"
+    assert pretty_duration(float("nan")) == "00h 00m 00s"
+    assert pretty_duration(-5) == "00h 00m 00s"
+
+
 # ---------------------------------------------------------------------------
 # run_cmd
 # ---------------------------------------------------------------------------
@@ -222,13 +231,13 @@ def test_print_subsection() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_child_level_stdout_info() -> None:
-    """Stdout lines are logged at INFO."""
+def test_child_level_stdout_debug() -> None:
+    """Stdout lines are logged at DEBUG (file audit trail only by default)."""
     import logging
 
     from recollindex import _child_level
 
-    assert _child_level("stdout", "anything") == logging.INFO
+    assert _child_level("stdout", "anything") == logging.DEBUG
 
 
 def test_child_level_error_stderr_warning() -> None:
@@ -241,13 +250,58 @@ def test_child_level_error_stderr_warning() -> None:
     assert _child_level("stderr", "FAILED to open x") == logging.WARNING
 
 
-def test_child_level_plain_stderr_info() -> None:
-    """Ordinary stderr lines stay INFO (not every warning is a warning)."""
+def test_child_level_plain_stderr_debug() -> None:
+    """Ordinary stderr lines stay DEBUG (not every line is a warning)."""
     import logging
 
     from recollindex import _child_level
 
-    assert _child_level("stderr", "Found 10 files") == logging.INFO
+    assert _child_level("stderr", "Found 10 files") == logging.DEBUG
+
+
+# ---------------------------------------------------------------------------
+# run log file naming + pruning
+# ---------------------------------------------------------------------------
+
+
+def test_run_log_file_name_format() -> None:
+    """Per-run log files are named <YYYY-MM-DD_HHMMSS>.log under LOG_DIR."""
+    import re
+
+    from recollindex import LOG_DIR, _run_log_file
+
+    path = _run_log_file()
+    assert path.parent == LOG_DIR
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}_\d{6}\.log", path.name)
+
+
+def test_prune_old_logs_deletes_only_stale(tmp_path: Path) -> None:
+    """Pruning removes *.log older than 30 days, keeps the rest."""
+    import os
+    import time as time_mod
+
+    from recollindex import _prune_old_logs
+
+    old = tmp_path / "2026-01-01_000000.log"
+    fresh = tmp_path / "2026-08-15_000000.log"
+    other = tmp_path / "notes.txt"
+    for p in (old, fresh, other):
+        p.write_text("x", encoding="utf-8")
+    stale = time_mod.time() - 40 * 86400
+    os.utime(old, (stale, stale))
+
+    _prune_old_logs(tmp_path)
+
+    assert not old.exists()
+    assert fresh.exists()
+    assert other.exists()
+
+
+def test_prune_old_logs_missing_dir_is_noop(tmp_path: Path) -> None:
+    """Pruning a missing directory is silently ignored (best-effort)."""
+    from recollindex import _prune_old_logs
+
+    _prune_old_logs(tmp_path / "does-not-exist")  # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -1058,7 +1112,7 @@ def test_constants() -> None:
     import recollindex
 
     assert recollindex.CONTAINER == "recoll-engine"
-    assert "recoll" in str(recollindex.LOG_FILE)
+    assert ".recoll/recoll_wrapper/logs" in str(recollindex.LOG_DIR)
     assert "recoll.conf" in str(recollindex.CONFIG_FILE)
     assert recollindex.INDEX_PATH == "/root/.recoll/xapiandb"
     assert Path("/tmp/recollindex-wrapper.lock") == recollindex.LOCK_FILE
@@ -1072,12 +1126,14 @@ def test_config_file_constant_uses_base_path() -> None:
     assert expected == recollindex.CONFIG_FILE
 
 
-def test_log_file_constant_uses_base_path() -> None:
-    """LOG_FILE equals BASE_PATH + app-data/recoll/.recoll/recollindex.log."""
+def test_log_dir_constant_uses_base_path() -> None:
+    """LOG_DIR equals BASE_PATH + app-data/recoll/.recoll/recoll_wrapper/logs."""
     import recollindex
 
-    expected = Path(recollindex.BASE_PATH) / "app-data/recoll/.recoll/recollindex.log"
-    assert expected == recollindex.LOG_FILE
+    expected = (
+        Path(recollindex.BASE_PATH) / "app-data/recoll/.recoll/recoll_wrapper/logs"
+    )
+    assert expected == recollindex.LOG_DIR
 
 
 def test_container_diagnostics_recoll_version_stderr() -> None:

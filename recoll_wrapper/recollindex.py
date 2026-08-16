@@ -10,8 +10,15 @@ Logging conventions (enforced by this module):
 * The terminal handler renders on ``stderr`` with colours, markup and
   rich tracebacks. A second handler, following the pattern from
   https://github.com/Textualize/rich/discussions/1309
-  (``Console(file=open("log.txt"))`` + ``RichHandler(console=console)``),
+  (``Console(file=open(...))`` + ``RichHandler(console=console)``),
   mirrors every record into a plain-text log file at DEBUG level.
+* Each run gets its own log file,
+  ``.recoll/recoll_wrapper/logs/<YYYY-MM-DD_HHMMSS>.log`` (under
+  ``$RECOLL_BASE_PATH/app-data/recoll/.recoll/``); run logs older than
+  30 days are pruned at start-up.
+* High-volume child output (per-file indexing lines) is logged at DEBUG,
+  so it reaches only the log file by default — pass ``-v`` to stream it
+  to the terminal as well.
 * Dynamic (user/tool-derived) strings are escaped with
   :func:`rich.markup.escape` before logging, because the handlers parse
   markup — literal ``[...]`` in tool output must not be treated as tags.
@@ -23,7 +30,7 @@ Logging conventions (enforced by this module):
 Usage:
     uv run python recollindex.py            # incremental (file-diff) index
     uv run python recollindex.py --rebuild  # full rebuild (removes existing index)
-    uv run python recollindex.py -v         # debug logging on the console
+    uv run python recollindex.py -v         # DEBUG logs on the console too
 """
 
 from __future__ import annotations
@@ -31,6 +38,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import logging
+import math
 import os
 import queue
 import re
@@ -41,7 +49,6 @@ import threading
 import time
 from collections import deque
 from collections.abc import Sequence
-from datetime import timedelta
 from pathlib import Path
 from typing import TextIO
 
@@ -68,8 +75,9 @@ from rich.text import Text
 
 CONTAINER = "recoll-engine"
 BASE_PATH = Path(os.environ.get("RECOLL_BASE_PATH", "/mnt/shuttle/share"))
-LOG_FILE = BASE_PATH / "app-data/recoll/.recoll/recollindex.log"
 CONFIG_FILE = BASE_PATH / "app-data/recoll/.recoll/recoll.conf"
+# One log file per run: .recoll/recoll_wrapper/logs/<YYYY-MM-DD_HHMMSS>.log
+LOG_DIR = CONFIG_FILE.parent / "recoll_wrapper" / "logs"
 INDEX_PATH = "/root/.recoll/xapiandb"
 # /tmp via gettempdir() so bandit S108 (hardcoded insecure temp path) stays green
 LOCK_FILE = Path(tempfile.gettempdir()) / "recollindex-wrapper.lock"
@@ -78,22 +86,54 @@ DATASETS_OF_INTEREST = ("lambo/share", "shuttle/share")
 # ---------------------------------------------------------------------------
 # Logging setup — Rich handlers to BOTH terminal and log file.
 # Terminal: colours + tracebacks on stderr (keeps stdout clean for tools).
-# File: the two-line pattern from rich discussion #1309, at DEBUG level so
-# the file is a complete audit trail while the console stays readable.
+# File: the two-line pattern from rich discussion #1309, one file per run
+# at DEBUG level so the file is a complete audit trail while the console
+# stays readable.
 # ---------------------------------------------------------------------------
+
+RUN_LOG_RETENTION_DAYS = 30
+
+
+def _run_log_file() -> Path:
+    """Return this run's log path: ``<LOG_DIR>/<YYYY-MM-DD_HHMMSS>.log``."""
+    return LOG_DIR / f"{time.strftime('%Y-%m-%d_%H%M%S')}.log"
+
+
+def _prune_old_logs(
+    directory: Path, max_age_days: int = RUN_LOG_RETENTION_DAYS
+) -> None:
+    """Delete ``*.log`` files in *directory* older than *max_age_days*.
+
+    Best-effort housekeeping: any individual failure is ignored so a
+    wedged log directory never blocks an indexing run.
+    """
+    cutoff = time.time() - max_age_days * 86400
+    try:
+        entries = list(directory.glob("*.log"))
+    except OSError:
+        return
+    for entry in entries:
+        try:
+            if entry.stat().st_mtime < cutoff:
+                entry.unlink()
+        except OSError:
+            pass
 
 
 def _open_log_file() -> tuple[TextIO | None, str | None]:
-    """Open (creating if needed) the log file for append-mode logging.
+    """Open (creating if needed) this run's log file for append-mode logging.
+
+    Older run logs are pruned first. A missing or unwritable base path is
+    not fatal — the wrapper then logs to the terminal only and reports
+    the problem at warning level.
 
     Returns:
-        Tuple of ``(file_or_none, error_message_or_none)``. A missing or
-        unwritable base path is not fatal — the wrapper then logs to the
-        terminal only and reports the problem at warning level.
+        Tuple of ``(file_or_none, error_message_or_none)``.
     """
     try:
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        return LOG_FILE.open("a", encoding="utf-8"), None
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        _prune_old_logs(LOG_DIR)
+        return _run_log_file().open("a", encoding="utf-8"), None
     except OSError as exc:
         return None, f"{exc}"
 
@@ -135,8 +175,8 @@ log = logging.getLogger(__name__)
 
 if _log_file_error is not None:
     log.warning(
-        "Log file %s unavailable (%s) — logging to terminal only.",
-        LOG_FILE,
+        "Run logs in %s unavailable (%s) — logging to terminal only.",
+        LOG_DIR,
         _escape_markup(_log_file_error),
     )
 
@@ -171,13 +211,11 @@ def run_cmd(*args: str, timeout: int | None = None) -> subprocess.CompletedProce
 
 
 def pretty_duration(seconds: float) -> str:
-    """Format seconds as ``HHh MMm SSs``."""
-    t = timedelta(seconds=int(seconds))
-    h, m, s = (
-        int(t.total_seconds()) // 3600,
-        (int(t.total_seconds()) % 3600) // 60,
-        int(t.total_seconds()) % 60,
-    )
+    """Format seconds as ``HHh MMm SSs`` (non-finite or negative clamp to zero)."""
+    if not math.isfinite(seconds) or seconds < 0:
+        return "00h 00m 00s"
+    total = int(seconds)
+    h, m, s = total // 3600, (total % 3600) // 60, total % 60
     return f"{h:02d}h {m:02d}m {s:02d}s"
 
 
@@ -246,11 +284,13 @@ def _child_level(name: str, line: str) -> int:
     """Map a streamed child-output line to its log level.
 
     stderr lines that look like errors are surfaced at WARNING; all other
-    streamed output is logged at INFO so the run stays visible in real time.
+    streamed output is logged at DEBUG so the hundreds of thousands of
+    per-file indexing lines stay out of the console (they still reach
+    the log file; ``-v`` streams them to the terminal as well).
     """
     if name == "stderr" and line.lower().startswith(("error", "fail")):
         return logging.WARNING
-    return logging.INFO
+    return logging.DEBUG
 
 
 def _print_cmd_output(
@@ -540,7 +580,7 @@ def check_existing_indexers() -> bool:
         "pgrep -x recollindex | wc -l",
     )
     count_text = result.stdout.strip()
-    count = int(count_text) if count_text.isdigit() else 0
+    count = int(count_text) if count_text.isascii() and count_text.isdigit() else 0
 
     log.info("Checking existing Recoll indexers...")
     log.info("Existing recollindex processes: %d", count)
@@ -598,7 +638,8 @@ def run_indexing(mode: str, command: list[str], total_lines: int | None = None) 
     """Run recollindex inside the container with a live progress bar.
 
     Child output is streamed (not captured until exit) so indexing
-    activity is visible in real time on both terminal and log file.
+    activity lands in the log file while a live progress bar keeps the
+    run visible on the terminal (``-v`` also streams every line).
     The progress display shows elapsed time, an iteration rate
     (child-output lines per second) and — when ``total_lines`` is known —
     a percentage bar plus estimated time until completion.
