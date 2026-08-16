@@ -95,7 +95,7 @@ class TestProcessXmlFile:
         assert "photo.jpg" in chloe_file.read_text()
 
     def test_empty_backup(self, tmp_path: Path):
-        empty_xml = '<backup><call><number>123</number></call></backup>'
+        empty_xml = "<backup><call><number>123</number></call></backup>"
         xml_file = tmp_path / "empty.xml"
         xml_file.write_text(empty_xml)
         output_dir = tmp_path / "output"

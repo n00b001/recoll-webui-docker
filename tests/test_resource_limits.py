@@ -63,7 +63,11 @@ def extract_var_name(value) -> str | None:
         return None
     inside = value.split("${", 1)[1].split("}", 1)[0]
     # Default-value syntax: NAME:-default or NAME-default
-    name = inside.split(":", 1)[0].split("-", 1)[0] if ":" in inside or "-" in inside else inside
+    name = (
+        inside.split(":", 1)[0].split("-", 1)[0]
+        if ":" in inside or "-" in inside
+        else inside
+    )
     # Pure literal fallback like ${:-default} has no name — treat as literal
     return name or None
 
@@ -103,9 +107,13 @@ def main() -> int:
         services_checked += 1
         cpu, memory, referenced = service_limits(cfg)
         if cpu is None:
-            failures.append(f"  - {name}: missing CPU limit (deploy.resources.limits.cpus)")
+            failures.append(
+                f"  - {name}: missing CPU limit (deploy.resources.limits.cpus)"
+            )
         if memory is None:
-            failures.append(f"  - {name}: missing memory limit (deploy.resources.limits.memory)")
+            failures.append(
+                f"  - {name}: missing memory limit (deploy.resources.limits.memory)"
+            )
         for var in referenced:
             if var not in declared:
                 failures.append(
@@ -118,7 +126,9 @@ def main() -> int:
         for line in failures:
             print(line, file=sys.stderr)
         return 1
-    print("OK: every service has CPU and memory limits, and every limit's env var is declared in .env.example")
+    print(
+        "OK: every service has CPU and memory limits, and every limit's env var is declared in .env.example"
+    )
     return 0
 
 

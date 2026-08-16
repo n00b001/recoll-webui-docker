@@ -24,9 +24,7 @@ def contact_key(address: str, contact_name: str | None) -> tuple[str, str]:
     return (safe, address)
 
 
-def process_xml_file(
-    xml_path: Path, output_base: Path, user_label: str
-) -> list[str]:
+def process_xml_file(xml_path: Path, output_base: Path, user_label: str) -> list[str]:
     """Process a single XML backup file.
 
     Returns list of contact keys that were updated.
@@ -75,9 +73,7 @@ def process_xml_file(
     return updated
 
 
-def _build_md_content(
-    msgs: list[dict[str, Any]], display_name: str
-) -> str:
+def _build_md_content(msgs: list[dict[str, Any]], display_name: str) -> str:
     """Build markdown text for a batch of messages."""
     lines: list[str] = []
     for msg in msgs:
