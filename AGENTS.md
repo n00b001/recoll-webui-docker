@@ -39,3 +39,31 @@ The docker-compose.yml needs to mount these subdirectories correctly.
 - ALWAYS use an ORM, never raw SQL
 - Python: SQLModel with SQLAlchemy
 - TypeScript: Drizzle, Prisma, Kysely
+
+## Logging & Typing Rules (recoll_wrapper, applies to all new Python code)
+- **Log with rich only — never `print`.** Every log record goes through
+  `logging` + `rich.logging.RichHandler`; built-in `print` is banned (ruff T20).
+- **Always use a proper log level.** DEBUG for audit-trail rows, INFO for
+  progress/operational, WARNING for recoverable issues, ERROR for failures.
+- **Colours & formatting:** terminal RichHandler uses markup + rich tracebacks;
+  dynamic (tool/user-derived) strings are escaped with `rich.markup.escape`
+  before logging so literal `[...]` is not parsed as markup.
+- **Tables & progress bars** come from rich: diagnostics render as
+  `Table`/`Panel`; long-running work shows a `Progress` bar with elapsed time,
+  iteration rate (it/s) and estimated time until completion (ETA; real ETA when
+  the total is known).
+- **Log to BOTH console and file** — two-line pattern from
+  https://github.com/Textualize/rich/discussions/1309:
+  `console = Console(file=open("log.txt"))` + `RichHandler(console=console)`.
+  The terminal handler stays on stderr with colours; the file mirror runs at
+  DEBUG so the log is a complete audit trail. Interactive prompts (y/N) go to
+  the terminal console, never into the log file.
+- **No `typing.Any`** — banned by ruff TID banned-api + ANN401.
+- **No ambiguous union types** — an annotation may not combine two or more
+  concrete types (`int | str`, `str | int | bytes`, also inside subscripts).
+  Optional style (one concrete type + `None`) is allowed. Model real ambiguity
+  explicitly (subclasses, Protocol, Literal). Enforced by
+  `recoll_wrapper/tests/test_type_policy.py`.
+- Strict tooling for recoll_wrapper: ruff select covers A/ANN/B/BLE/C4/D/E/F/
+  FLY/G/I/LOG/PERF/PIE/PL/PTH/RET/RUF/S/SIM/T20/TID/UP/W (S607 ignored only —
+  host tools are PATH-resolved by design); ty runs with `all = "error"`.

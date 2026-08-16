@@ -3,9 +3,9 @@
 # Run manually: uv run pre-commit run --all-files
 
 repos:
-  # Ruff - fast Python linter and formatter
+  # Ruff - fast Python linter and formatter (match recoll_wrapper dev group)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.16.3
     hooks:
       - id: ruff
         name: ruff check
