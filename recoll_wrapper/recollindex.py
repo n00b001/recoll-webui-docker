@@ -49,7 +49,6 @@ import threading
 import time
 from collections import deque
 from collections.abc import Sequence
-from datetime import timedelta
 from pathlib import Path
 from typing import TextIO
 
@@ -215,8 +214,7 @@ def pretty_duration(seconds: float) -> str:
     """Format seconds as ``HHh MMm SSs`` (non-finite or negative clamp to zero)."""
     if not math.isfinite(seconds) or seconds < 0:
         return "00h 00m 00s"
-    t = timedelta(seconds=int(seconds))
-    total = int(t.total_seconds())
+    total = int(seconds)
     h, m, s = total // 3600, (total % 3600) // 60, total % 60
     return f"{h:02d}h {m:02d}m {s:02d}s"
 
