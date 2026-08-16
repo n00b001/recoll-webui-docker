@@ -20,41 +20,74 @@ dev = [
 [tool.ruff]
 exclude = ["recoll-webui/**", "src/**"]
 
+# Strict mode: every rule family below is enforced at error level.
+# Policy extras (see AGENTS.md):
+#   * no print()            -> T20 (flake8-print); log through rich instead
+#   * no typing.Any         -> TID banned-api below + ANN401
+#   * no ambiguous unions   -> tests/test_type_policy.py (AST guard)
 [tool.ruff.lint]
 select = [
-    "E",       # pycodestyle errors
-    "F",       # pyflakes
-    "B",       # flake8-bugbear
-    "UP",      # pyupgrade
-    "RUF",     # ruff-specific
-    "I",       # isort
-    "ANN",     # flake8-annotations - type hints required
-    "D",       # pydocstyle - docstrings required
-    "PL",      # pylint
-    "SIM",     # flake8-simplify
-    "W",       # pycodestyle warnings
-    "A",       # flake8-builtins - ambiguous names
-    "BLE",     # flake8-blind-except
+    "A",     # flake8-builtins - shadowing builtins / ambiguous names
+    "ANN",   # flake8-annotations - type hints required (incl. ANN401 no dynamic Any)
+    "B",     # flake8-bugbear
+    "BLE",   # flake8-blind-except
+    "C4",    # flake8-comprehensions
+    "D",     # pydocstyle - docstrings required (google convention below)
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "FLY",   # flynt - f-strings over .format()
+    "G",     # flake8-logging-format - % formatting in logs, no f-string interpolation
+    "I",     # isort
+    "LOG",   # logging-best-practices
+    "PERF",  # Perflint performance anti-patterns
+    "PIE",   # flake8-pie
+    "PL",    # pylint
+    "PTH",   # flake8-use-pathlib - pathlib over os.path
+    "RET",   # flake8-return - clean, early returns
+    "RUF",   # ruff-specific
+    "S",     # bandit security
+    "SIM",   # flake8-simplify
+    "T20",   # flake8-print - NO print; use rich logging (see AGENTS.md)
+    "TID",   # flake8-tidy-imports - banned APIs below
+    "UP",    # pyupgrade
+    "W",     # pycodestyle warnings
 ]
 ignore = [
-    "BLE001",  # bare except (explicitly handled in _locked_main)
     "D105",    # no docstring required on magic methods
     "D107",    # no docstring required on __init__
     "PLR0912", # too many branches
     "PLR0913", # too many arguments
     "PLR2004", # magic value comparison
-    "S603",    # subprocess popen with shell=True (we use shell=False)
-    "S607",    # start process with partial path
+    "S607",    # start process with partial path — host/container tools (docker,
+               # zpool, lsblk, ...) are intentionally resolved via PATH
 ]
 
+# No typing.Any: ban it at import time (TID251) on top of ANN401.
+[tool.ruff.lint.flake8-tidy-imports.banned-api."typing.Any"]
+msg = "typing.Any is banned — model the type explicitly instead (see AGENTS.md logging & typing rules)"
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["D103", "S101", "PLC0415", "SIM117", "ANN", "E501"]  # test flexibility
+"tests/**/*.py" = [
+    "D103",      # no docstring required on test functions
+    "S101",      # assert is the point of tests
+    "PLC0415",   # local imports for test isolation
+    "SIM117",
+    "ANN",
+    "E501",
+    "S108",      # temp paths in /tmp are fine in tests
+    "PTH",       # os.path/tempfile usage inside mocks is acceptable
+]  # test flexibility — strict rules apply to production code
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
+
+# ty: strict mode — every diagnostic at error severity.
+# (ty exits non-zero on any warning anyway via terminal.error-on-warning.)
+[tool.ty.rules]
+all = "error"
 
 [tool.pytest.ini_options]
 addopts = "-n 4 --dist=load --cov=. --cov-report=term-missing --cov-fail-under=80"

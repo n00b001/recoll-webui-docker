@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import fcntl
+import io
 import os
 import subprocess
 import sys
@@ -88,19 +90,93 @@ def test_run_cmd_timeout() -> None:
     assert "Timed out after 1s" in result.stderr
 
 
+def test_run_cmd_command_not_found() -> None:
+    """run_cmd survives a missing host utility (e.g. no zpool on dev boxes)."""
+    from recollindex import run_cmd
+
+    result = run_cmd("definitely-not-a-real-binary-xyz")
+    assert result.returncode == 127
+    assert "Command not found" in result.stderr
+
+
 # ---------------------------------------------------------------------------
 # Logging setup / console
 # ---------------------------------------------------------------------------
 
 
 def test_module_console_initialised() -> None:
-    """Module-level console is a rich Console after import."""
+    """Module-level console is a rich Console (terminal display surface)."""
     from rich.console import Console
 
     import recollindex
 
     assert isinstance(recollindex.console, Console)
     assert recollindex.log is not None
+    # Terminal handler always attached; file handler optional by environment.
+    root = __import__("logging").getLogger()
+    handlers = [h for h in root.handlers if h.__class__.__name__ == "RichHandler"]
+    assert len(handlers) >= 1
+
+
+def test_set_console_verbosity_toggles_handler_level() -> None:
+    """set_console_verbosity raises/lowers the terminal handler level."""
+    import logging
+
+    import recollindex
+
+    original = recollindex._term_handler.level
+    try:
+        recollindex.set_console_verbosity(True)
+        assert recollindex._term_handler.level == logging.DEBUG
+        recollindex.set_console_verbosity(False)
+        assert recollindex._term_handler.level == logging.INFO
+    finally:
+        recollindex._term_handler.setLevel(original)
+
+
+# ---------------------------------------------------------------------------
+# parse_args
+# ---------------------------------------------------------------------------
+
+
+def test_parse_args_defaults() -> None:
+    """parse_args defaults to incremental, non-verbose."""
+    from recollindex import parse_args
+
+    args = parse_args([])
+    assert args.rebuild is False
+    assert args.verbose is False
+
+
+def test_parse_args_rebuild_verbose() -> None:
+    """parse_args picks up --rebuild and -v."""
+    from recollindex import parse_args
+
+    args = parse_args(["--rebuild", "-v"])
+    assert args.rebuild is True
+    assert args.verbose is True
+
+
+def test_parse_args_help_exits_zero() -> None:
+    """parse_args exits with SystemExit(0) on --help."""
+    from recollindex import parse_args
+
+    try:
+        parse_args(["--help"])
+        raise AssertionError("--help should have exited")
+    except SystemExit as exc:
+        assert exc.code == 0
+
+
+def test_parse_args_rejects_unknown() -> None:
+    """parse_args rejects unknown flags."""
+    from recollindex import parse_args
+
+    try:
+        parse_args(["--bogus"])
+        raise AssertionError("unknown flag should have exited")
+    except SystemExit as exc:
+        assert exc.code == 2
 
 
 # ---------------------------------------------------------------------------
@@ -136,10 +212,42 @@ def test_print_subsection() -> None:
         recollindex._print_subsection("Test Sub")
         fake_logger.info.assert_called_once()
         call_args = fake_logger.info.call_args[0]
-        # Check that the title is passed as the second argument (format string, then value)
         assert call_args[1] == "Test Sub"
     finally:
         recollindex.log = orig
+
+
+# ---------------------------------------------------------------------------
+# _child_level
+# ---------------------------------------------------------------------------
+
+
+def test_child_level_stdout_info() -> None:
+    """Stdout lines are logged at INFO."""
+    import logging
+
+    from recollindex import _child_level
+
+    assert _child_level("stdout", "anything") == logging.INFO
+
+
+def test_child_level_error_stderr_warning() -> None:
+    """Stderr lines that start with error or fail are WARNING."""
+    import logging
+
+    from recollindex import _child_level
+
+    assert _child_level("stderr", "error: boom") == logging.WARNING
+    assert _child_level("stderr", "FAILED to open x") == logging.WARNING
+
+
+def test_child_level_plain_stderr_info() -> None:
+    """Ordinary stderr lines stay INFO (not every warning is a warning)."""
+    import logging
+
+    from recollindex import _child_level
+
+    assert _child_level("stderr", "Found 10 files") == logging.INFO
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +264,9 @@ def test_container_diagnostics() -> None:
     try:
         recollindex.console = fake_console
 
-        mock_result = subprocess.CompletedProcess([], 0, "name\tstatus\timage\n", "")
+        mock_result = subprocess.CompletedProcess(
+            [], 0, "recoll-engine\tUp 5 days\timage\n", ""
+        )
         with patch.object(recollindex, "run_cmd", return_value=mock_result):
             recollindex.container_diagnostics("Test")
     finally:
@@ -336,6 +446,34 @@ def test_storage_diagnostics_pci_matching() -> None:
         recollindex.console = orig
 
 
+def test_storage_diagnostics_zfs_table_rows() -> None:
+    """storage_diagnostics renders matching ZFS datasets as a table."""
+    import recollindex
+
+    fake_console = MagicMock()
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
+    try:
+        recollindex.console = fake_console
+        recollindex.log = fake_logger
+
+        def side_effect(*args, **_kwargs):
+            if args[0] == "zfs":
+                return subprocess.CompletedProcess(
+                    args, 0, "shuttle/share\t1G\t2T\t500M\t/mnt/shuttle/share\n", ""
+                )
+            return subprocess.CompletedProcess(args, 0, "\n", "")
+
+        with patch.object(recollindex, "run_cmd", side_effect=side_effect):
+            with patch.object(Path, "exists", return_value=False):
+                recollindex.storage_diagnostics("Test")
+
+        calls = [str(c) for c in fake_logger.debug.call_args_list]
+        assert any("shuttle/share" in c for c in calls)
+    finally:
+        recollindex.console, recollindex.log = orig_console, orig_log
+
+
 # ---------------------------------------------------------------------------
 # print_configuration
 # ---------------------------------------------------------------------------
@@ -363,35 +501,36 @@ def test_print_configuration_success() -> None:
     import recollindex
 
     fake_logger = MagicMock()
-    orig = recollindex.log
+    fake_console = MagicMock()
+    orig_log, orig_console = recollindex.log, recollindex.console
     try:
         recollindex.log = fake_logger
-        config_content = (
-            "# comment\n" "topdirs = /path1\n" "loglevel = 3\n" "other = value\n"
-        )
+        recollindex.console = fake_console
+        config_content = "# comment\ntopdirs = /path1\nloglevel = 3\nother = value\n"
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", return_value=config_content):
                 recollindex.print_configuration()
-                calls = [str(c) for c in fake_logger.info.call_args_list]
+                calls = [str(c) for c in fake_logger.debug.call_args_list]
                 assert any("topdirs" in c for c in calls)
                 assert any("loglevel" in c for c in calls)
     finally:
-        recollindex.log = orig
+        recollindex.log, recollindex.console = orig_log, orig_console
 
 
 def test_print_configuration_os_error() -> None:
     """print_configuration handles OSError reading config."""
     import recollindex
 
-    fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig_log = recollindex.log
     try:
-        recollindex.console = fake_console
+        recollindex.log = fake_logger
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "read_text", side_effect=OSError("perm")):
                 recollindex.print_configuration()
+                fake_logger.error.assert_called_once()
     finally:
-        recollindex.console = orig
+        recollindex.log = orig_log
 
 
 # ---------------------------------------------------------------------------
@@ -513,73 +652,123 @@ def test_confirm_rebuild_empty() -> None:
 
 
 # ---------------------------------------------------------------------------
-# run_indexing
+# run_indexing (live-streamed child output)
 # ---------------------------------------------------------------------------
 
 
 def _make_mock_proc(returncode, stdout="ok\n", stderr=""):
-    """Helper to build a mock Popen process."""
+    """Helper to build a mock Popen process with iterable stream ends."""
     mock_proc = MagicMock()
     mock_proc.returncode = returncode
-    mock_proc.stdout = MagicMock()
-    mock_proc.stdout.read.return_value = stdout
-    mock_proc.stderr = MagicMock()
-    mock_proc.stderr.read.return_value = stderr
-    mock_proc.poll.side_effect = [None, returncode]
+    mock_proc.wait.return_value = returncode
+    mock_proc.stdout = io.StringIO(stdout)
+    mock_proc.stderr = io.StringIO(stderr)
+    # Enough poll results for the drain loop plus the exit check.
+    mock_proc.poll.side_effect = [None, returncode, returncode]
     return mock_proc
 
 
 def test_run_indexing_success() -> None:
-    """run_indexing completes successfully."""
+    """run_indexing completes successfully and streams output."""
     import recollindex
 
     fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
     try:
         recollindex.console = fake_console
+        recollindex.log = fake_logger
         mock_proc = _make_mock_proc(0)
 
         with patch("subprocess.Popen", return_value=mock_proc):
-            with patch("time.sleep"):
-                result = recollindex.run_indexing("INCREMENTAL", ["recollindex"])
-                assert result == 0
+            result = recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+            assert result == 0
+        # Child stdout line must have been streamed through the logger.
+        calls = [str(c) for c in fake_logger.log.call_args_list]
+        assert any("ok" in c for c in calls)
     finally:
-        recollindex.console = orig
+        recollindex.console, recollindex.log = orig_console, orig_log
 
 
 def test_run_indexing_failure() -> None:
-    """run_indexing returns non-zero on failure."""
+    """run_indexing returns non-zero and logs the failing tail."""
+    import logging
+
     import recollindex
 
     fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
     try:
         recollindex.console = fake_console
-        mock_proc = _make_mock_proc(2, stdout="", stderr="error\n")
+        recollindex.log = fake_logger
+        mock_proc = _make_mock_proc(2, stdout="", stderr="error: bad\n")
 
         with patch("subprocess.Popen", return_value=mock_proc):
-            with patch("time.sleep"):
-                result = recollindex.run_indexing("FULL REBUILD", ["recollindex", "-z"])
-                assert result == 2
+            result = recollindex.run_indexing("FULL REBUILD", ["recollindex", "-z"])
+            assert result == 2
+        # Error lines are surfaced at WARNING level.
+        levels = [c.args[0] for c in fake_logger.log.call_args_list if c.args]
+        assert logging.WARNING in levels
     finally:
-        recollindex.console = orig
+        recollindex.console, recollindex.log = orig_console, orig_log
 
 
 def test_run_indexing_many_lines() -> None:
-    """run_indexing truncates output beyond 50 lines."""
+    """run_indexing streams many lines and keeps a bounded tail."""
     import recollindex
 
     fake_console = MagicMock()
-    orig = recollindex.console
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
     try:
         recollindex.console = fake_console
+        recollindex.log = fake_logger
         mock_proc = _make_mock_proc(3, stdout="\n".join(f"line{i}" for i in range(100)))
 
         with patch("subprocess.Popen", return_value=mock_proc):
-            with patch("time.sleep"):
-                recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+            result = recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+            assert result == 3
     finally:
-        recollindex.console = orig
+        recollindex.console, recollindex.log = orig_console, orig_log
+
+
+def test_run_indexing_docker_missing() -> None:
+    """run_indexing returns 127 when the docker CLI is absent."""
+    import recollindex
+
+    fake_console = MagicMock()
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
+    try:
+        recollindex.console = fake_console
+        recollindex.log = fake_logger
+        with patch("subprocess.Popen", side_effect=FileNotFoundError("no docker")):
+            result = recollindex.run_indexing("INCREMENTAL", ["recollindex"])
+            assert result == 127
+    finally:
+        recollindex.console, recollindex.log = orig_console, orig_log
+
+
+def test_run_indexing_with_total() -> None:
+    """run_indexing accepts a known line total (progress bar + ETA)."""
+    import recollindex
+
+    fake_console = MagicMock()
+    fake_logger = MagicMock()
+    orig_console, orig_log = recollindex.console, recollindex.log
+    try:
+        recollindex.console = fake_console
+        recollindex.log = fake_logger
+        mock_proc = _make_mock_proc(0, stdout="a\nb\nc\n")
+
+        with patch("subprocess.Popen", return_value=mock_proc):
+            result = recollindex.run_indexing(
+                "INCREMENTAL", ["recollindex"], total_lines=3
+            )
+            assert result == 0
+    finally:
+        recollindex.console, recollindex.log = orig_console, orig_log
 
 
 # ---------------------------------------------------------------------------
@@ -609,7 +798,7 @@ def test_main_incremental_success() -> None:
                             recollindex, "check_existing_indexers", return_value=False
                         ):
                             with patch("subprocess.Popen", return_value=mock_proc):
-                                with patch("time.sleep"):
+                                with patch.object(sys, "argv", ["recollindex.py"]):
                                     result = recollindex.main()
                                     assert result == 0
     finally:
@@ -635,8 +824,9 @@ def test_main_aborts_on_existing_indexer() -> None:
                         with patch.object(
                             recollindex, "check_existing_indexers", return_value=True
                         ):
-                            result = recollindex.main()
-                            assert result == 2
+                            with patch.object(sys, "argv", ["recollindex.py"]):
+                                result = recollindex.main()
+                                assert result == 2
     finally:
         recollindex.console = orig
 
@@ -697,14 +887,46 @@ def test_main_rebuild_success() -> None:
                                 recollindex, "confirm_rebuild", return_value=True
                             ):
                                 with patch("subprocess.Popen", return_value=mock_proc):
-                                    with patch("time.sleep"):
-                                        with patch.object(
-                                            sys, "argv", ["recollindex.py", "--rebuild"]
-                                        ):
-                                            result = recollindex.main()
-                                            assert result == 0
+                                    with patch.object(
+                                        sys, "argv", ["recollindex.py", "--rebuild"]
+                                    ):
+                                        result = recollindex.main()
+                                        assert result == 0
     finally:
         recollindex.console = orig
+
+
+def _ok_process(stdout: str) -> subprocess.CompletedProcess[str]:
+    """Build a successful CompletedProcess."""
+    return subprocess.CompletedProcess([], 0, stdout, "")
+
+
+def test_main_verbose_flag() -> None:
+    """Main applies the verbose flag to the terminal handler level."""
+    import logging
+
+    import recollindex
+
+    fake_console = MagicMock()
+    orig = recollindex.console
+    original_level = recollindex._term_handler.level
+    try:
+        recollindex.console = fake_console
+        with patch.object(
+            recollindex, "run_cmd", return_value=_ok_process("hostname\n")
+        ):
+            with patch.object(recollindex, "container_diagnostics"):
+                with patch.object(recollindex, "storage_diagnostics"):
+                    with patch.object(recollindex, "print_configuration"):
+                        with patch.object(
+                            recollindex, "check_existing_indexers", return_value=True
+                        ):
+                            with patch.object(sys, "argv", ["recollindex.py", "-v"]):
+                                recollindex.main()
+        assert recollindex._term_handler.level == logging.DEBUG
+    finally:
+        recollindex.console = orig
+        recollindex._term_handler.setLevel(original_level)
 
 
 # ---------------------------------------------------------------------------
@@ -725,7 +947,7 @@ def test_locked_main_success() -> None:
             tmp_path = f.name
 
         try:
-            with patch.object(recollindex, "LOCK_FILE", tmp_path):
+            with patch.object(recollindex, "LOCK_FILE", Path(tmp_path)):
                 with patch.object(recollindex, "main", return_value=0):
                     result = recollindex._locked_main()
                     assert result == 0
@@ -743,9 +965,60 @@ def test_locked_main_lock_file_os_error() -> None:
     orig = recollindex.console
     try:
         recollindex.console = fake_console
-        with patch("builtins.open", side_effect=OSError("no perm")):
+        with patch.object(Path, "open", side_effect=OSError("no perm")):
             result = recollindex._locked_main()
             assert result == 1
+    finally:
+        recollindex.console = orig
+
+
+def test_locked_main_lock_contention() -> None:
+    """_locked_main exits 3 when another process holds the lock."""
+    import recollindex
+
+    fake_console = MagicMock()
+    orig = recollindex.console
+    try:
+        recollindex.console = fake_console
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            tmp_path = f.name
+
+        try:
+            holder = open(tmp_path, "w")  # noqa: SIM115
+            fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                with patch.object(recollindex, "LOCK_FILE", Path(tmp_path)):
+                    result = recollindex._locked_main()
+                    assert result == 3
+            finally:
+                holder.close()
+        finally:
+            os.unlink(tmp_path)
+    finally:
+        recollindex.console = orig
+
+
+def test_locked_main_exit_code_passthrough() -> None:
+    """_locked_main propagates exit codes from main() (argparse help exits 0)."""
+    import recollindex
+
+    fake_console = MagicMock()
+    orig = recollindex.console
+    try:
+        recollindex.console = fake_console
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            tmp_path = f.name
+
+        try:
+            with patch.object(recollindex, "LOCK_FILE", Path(tmp_path)):
+                with patch.object(recollindex, "main", side_effect=SystemExit(0)):
+                    assert recollindex._locked_main() == 0
+                with patch.object(recollindex, "main", side_effect=SystemExit(2)):
+                    assert recollindex._locked_main() == 2
+        finally:
+            os.unlink(tmp_path)
     finally:
         recollindex.console = orig
 
@@ -763,7 +1036,7 @@ def test_locked_main_exception_handling() -> None:
             tmp_path = f.name
 
         try:
-            with patch.object(recollindex, "LOCK_FILE", tmp_path):
+            with patch.object(recollindex, "LOCK_FILE", Path(tmp_path)):
                 with patch.object(
                     recollindex, "main", side_effect=RuntimeError("boom")
                 ):
@@ -785,33 +1058,25 @@ def test_constants() -> None:
     import recollindex
 
     assert recollindex.CONTAINER == "recoll-engine"
-    assert "recoll" in recollindex.LOG_FILE
-    assert "recoll.conf" in recollindex.CONFIG_FILE
-    assert "xapiandb" in recollindex.INDEX_PATH
-    assert recollindex.LOCK_FILE == "/tmp/recollindex-wrapper.lock"
+    assert "recoll" in str(recollindex.LOG_FILE)
+    assert "recoll.conf" in str(recollindex.CONFIG_FILE)
+    assert recollindex.INDEX_PATH == "/root/.recoll/xapiandb"
+    assert Path("/tmp/recollindex-wrapper.lock") == recollindex.LOCK_FILE
 
 
 def test_config_file_constant_uses_base_path() -> None:
     """CONFIG_FILE equals BASE_PATH + app-data/recoll/.recoll/recoll.conf."""
-    import os
-
     import recollindex
 
-    expected = os.path.join(
-        recollindex.BASE_PATH, "app-data/recoll/.recoll/recoll.conf"
-    )
+    expected = Path(recollindex.BASE_PATH) / "app-data/recoll/.recoll/recoll.conf"
     assert expected == recollindex.CONFIG_FILE
 
 
 def test_log_file_constant_uses_base_path() -> None:
     """LOG_FILE equals BASE_PATH + app-data/recoll/.recoll/recollindex.log."""
-    import os
-
     import recollindex
 
-    expected = os.path.join(
-        recollindex.BASE_PATH, "app-data/recoll/.recoll/recollindex.log"
-    )
+    expected = Path(recollindex.BASE_PATH) / "app-data/recoll/.recoll/recollindex.log"
     assert expected == recollindex.LOG_FILE
 
 
