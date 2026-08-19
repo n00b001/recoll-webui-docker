@@ -7,7 +7,10 @@
 
 FROM ghcr.io/jakewharton/mbsync:1.4.1
 
-# Base image runs as non-root; switch to root for apk add, then drop back
+# Runs as root: s6-overlay requires a root init — it chowns/chmods its
+# /var/run/s6 staging area at container start and fails (EPERM) under any
+# other USER. The only workload is cron + mbsync, so no privilege drop.
+# hadolint ignore=DL3002
 USER 0
 
 # Install gettext for envsubst template rendering (isync + curl already present)
@@ -23,7 +26,6 @@ RUN chmod +x /entrypoint.sh
 
 COPY mbsyncrc.template /etc/mbsyncrc.template
 
-# Drop back to non-root user from base image (UID 1000)
-USER 1000
-
+# No USER drop here: /init (s6-overlay) must stay root. Synced mail files
+# are world-readable; Recoll indexes them via a read-only bind mount of /mail.
 ENTRYPOINT ["/entrypoint.sh"]
