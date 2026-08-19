@@ -29,5 +29,10 @@ export IMAP_USER_CHLOE_IMAP="${IMAP_USER_CHLOE_IMAP:-chloe@example.com}"
 mkdir -p /config
 envsubst < /etc/mbsyncrc.template > /config/mbsync.rc
 
+# Seed base Maildir dirs — isync will not create them on a fresh data volume
+# ("Maildir error: cannot open store", and `Create Near` only creates
+# subfolders). Derive paths from the rendered rc to stay in sync with template.
+awk '$1 == "Path" { print $2 }' /config/mbsync.rc | xargs mkdir -p
+
 # Hand off to the original s6-overlay entrypoint
 exec /init "$@"
